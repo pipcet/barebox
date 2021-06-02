@@ -277,16 +277,18 @@ static int arasan_sdhci_send_cmd(struct mci_host *mci, struct mci_cmd *cmd,
 	sdhci_write32(&host->sdhci, SDHCI_INT_STATUS, ~0);
 
 	mask = SDHCI_INT_CMD_COMPLETE;
-	if (data)
+	if (data && data->flags == MMC_DATA_READ)
 		mask |= SDHCI_INT_DATA_AVAIL;
 
 	sdhci_set_cmd_xfer_mode(&host->sdhci, cmd, data, false, &command, &xfer);
 
 	sdhci_write8(&host->sdhci, SDHCI_TIMEOUT_CONTROL, TIMEOUT_VAL);
-	sdhci_write16(&host->sdhci, SDHCI_TRANSFER_MODE, xfer);
-	sdhci_write16(&host->sdhci, SDHCI_BLOCK_SIZE, SDHCI_DMA_BOUNDARY_512K |
-			    SDHCI_TRANSFER_BLOCK_SIZE(data->blocksize));
-	sdhci_write16(&host->sdhci, SDHCI_BLOCK_COUNT, data->blocks);
+	if (data) {
+		sdhci_write16(&host->sdhci, SDHCI_TRANSFER_MODE, xfer);
+		sdhci_write16(&host->sdhci, SDHCI_BLOCK_SIZE,
+			      SDHCI_DMA_BOUNDARY_512K | SDHCI_TRANSFER_BLOCK_SIZE(data->blocksize));
+		sdhci_write16(&host->sdhci, SDHCI_BLOCK_COUNT, data->blocks);
+	}
 	sdhci_write32(&host->sdhci, SDHCI_ARGUMENT, cmd->cmdarg);
 	sdhci_write16(&host->sdhci, SDHCI_COMMAND, command);
 
