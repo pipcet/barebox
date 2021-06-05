@@ -24,10 +24,10 @@ u32 gu_rgb_to_pixel(struct fb_info *info, u8 r, u8 g, u8 b, u8 t)
 {
 	u32 px;
 
-	px = (t >> (8 - info->transp.length)) << info->transp.offset |
-		 (r >> (8 - info->red.length)) << info->red.offset |
-		 (g >> (8 - info->green.length)) << info->green.offset |
-		 (b >> (8 - info->blue.length)) << info->blue.offset;
+	px = ((t << 2) >> (10 - info->transp.length)) << info->transp.offset |
+		((r << 2) >> (10 - info->red.length)) << info->red.offset |
+		((g << 2) >> (10 - info->green.length)) << info->green.offset |
+		((b << 2) >> (10 - info->blue.length)) << info->blue.offset;
 
 	return px;
 }
