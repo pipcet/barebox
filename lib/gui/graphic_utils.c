@@ -24,10 +24,10 @@ u32 gu_rgb_to_pixel(struct fb_info *info, u8 r, u8 g, u8 b, u8 t)
 {
 	u32 px;
 
-	px = ((t << 2) >> (10 - info->transp.length)) << info->transp.offset |
-		((r << 2) >> (10 - info->red.length)) << info->red.offset |
-		((g << 2) >> (10 - info->green.length)) << info->green.offset |
-		((b << 2) >> (10 - info->blue.length)) << info->blue.offset;
+	px = (((t * 0x101) >> (16 - info->transp.length)) << info->transp.offset |
+	      ((r * 0x101) >> (16 - info->red.length)) << info->red.offset |
+	      ((g * 0x101) >> (16 - info->green.length)) << info->green.offset |
+	      ((b * 0x101) >> (16 - info->blue.length)) << info->blue.offset);
 
 	return px;
 }
@@ -114,18 +114,18 @@ static void get_rgb_pixel(struct fb_info *info, void *adr, u8 *r ,u8 *g, u8 *b)
 		return;
 	}
 
-	rmask = (0xff >> (8 - info->blue.length)) << info->blue.offset |
-		(0xff >> (8 - info->green.length)) << info->green.offset;
+	rmask = (0xffff >> (16 - info->blue.length)) << info->blue.offset |
+		(0xffff >> (16 - info->green.length)) << info->green.offset;
 
-	gmask = (0xff >> (8 - info->red.length)) << info->red.offset |
-		(0xff >> (8 - info->blue.length)) << info->blue.offset;
+	gmask = (0xffff >> (16 - info->red.length)) << info->red.offset |
+		(0xffff >> (16 - info->blue.length)) << info->blue.offset;
 
-	bmask = (0xff >> (8 - info->red.length)) << info->red.offset |
-		(0xff >> (8 - info->green.length)) << info->green.offset;
+	bmask = (0xffff >> (16 - info->red.length)) << info->red.offset |
+		(0xffff >> (16 - info->green.length)) << info->green.offset;
 
-	*r = ((px & ~rmask) >> info->red.offset) << (8 - info->red.length);
-	*g = ((px & ~gmask) >> info->green.offset) << (8 - info->green.length);
-	*b = ((px & ~bmask) >> info->blue.offset) << (8 - info->blue.length);
+	*r = ((px & ~rmask) >> info->red.offset) << (16 - info->red.length);
+	*g = ((px & ~gmask) >> info->green.offset) << (16 - info->green.length);
+	*b = ((px & ~bmask) >> info->blue.offset) << (16 - info->blue.length);
 }
 
 void gu_set_pixel(struct fb_info *info, void *adr, u32 px)
@@ -147,9 +147,9 @@ void gu_set_rgb_pixel(struct fb_info *info, void *adr, u8 r, u8 g, u8 b)
 {
 	u32 px;
 
-	px = (r >> (8 - info->red.length)) << info->red.offset |
-		(g >> (8 - info->green.length)) << info->green.offset |
-		(b >> (8 - info->blue.length)) << info->blue.offset;
+	px = ((r * 0x101) >> (16 - info->red.length)) << info->red.offset |
+	  ((g * 0x101) >> (16 - info->green.length)) << info->green.offset |
+	  ((b * 0x101) >> (16 - info->blue.length)) << info->blue.offset;
 
 	gu_set_pixel(info, adr, px);
 }
@@ -187,7 +187,7 @@ void gu_set_rgba_pixel(struct fb_info *info, void *adr, u8 r, u8 g, u8 b, u8 a)
 
 	if (a != 0xff) {
 		if (info->transp.length) {
-			px |= (a >> (8 - info->transp.length)) << info->transp.offset;
+		  px |= ((a * 0x101) >> (16 - info->transp.length)) << info->transp.offset;
 		} else {
 			u8 sr = 0;
 			u8 sg = 0;
@@ -205,9 +205,9 @@ void gu_set_rgba_pixel(struct fb_info *info, void *adr, u8 r, u8 g, u8 b, u8 a)
 		}
 	}
 
-	px |= (r >> (8 - info->red.length)) << info->red.offset |
-		(g >> (8 - info->green.length)) << info->green.offset |
-		(b >> (8 - info->blue.length)) << info->blue.offset;
+	px |= ((r * 0x101) >> (16 - info->red.length)) << info->red.offset |
+	  ((g * 0x101) >> (16 - info->green.length)) << info->green.offset |
+	  ((b * 0x101) >> (16 - info->blue.length)) << info->blue.offset;
 
 	gu_set_pixel(info, adr, px);
 }
