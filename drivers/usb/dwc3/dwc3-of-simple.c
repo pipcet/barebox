@@ -73,6 +73,7 @@ static const struct of_device_id of_dwc3_simple_match[] = {
 	{.compatible = "amlogic,meson-axg-dwc3"},
 	{.compatible = "amlogic,meson-gxl-dwc3"},
 	{.compatible = "allwinner,sun50i-h6-dwc3"},
+	{.compatible = "apple,dwc3-m1"},
 	{/* Sentinel */}};
 
 static struct driver_d dwc3_of_simple_driver = {
