@@ -43,6 +43,8 @@ static int io_queue_depth = 2;
 
 static void *sart_alloc_coherent(struct device_d *dev, size_t size,
 				 dma_addr_t *ret);
+static void sart_free_coherent(struct device_d *dev,
+			       void *ptr, dma_addr_t, size_t size);
 static dma_addr_t sart_map_single(struct device_d *dev, void *buffer,
 				  size_t size, int direction);
 static void sart_unmap_single(struct device_d *dev, dma_addr_t addr,
@@ -126,8 +128,8 @@ static int nvme_pci_setup_prps(struct nvme_dev *dev,
 
 	nprps = DIV_ROUND_UP(length, page_size);
 	if (nprps > dev->prp_pool_size) {
-		dma_free_coherent(dev->prp_pool, dev->prp_dma,
-				  dev->prp_pool_size * sizeof(u64));
+		sart_free_coherent(dev->dev, dev->prp_pool, dev->prp_dma,
+				   dev->prp_pool_size * sizeof(u64));
 		dev->prp_pool_size = nprps;
 		dev->prp_pool = sart_alloc_coherent(dev->dev,
 						    nprps * sizeof(u64),
@@ -210,7 +212,8 @@ static int nvme_alloc_queue(struct nvme_dev *dev, int qid, int depth)
 	nvmeq->q_db = &dev->dbs[qid * 2 * dev->db_stride];
 	nvmeq->q_depth = depth;
 	nvmeq->qid = qid;
-	nvmeq->tcbs = (void *)memalign(4096, ANS_NVMMU_TCB_SIZE);
+	nvmeq->tcbs = (void *)xmemalign(16384, ANS_NVMMU_TCB_SIZE);
+	sart_map_single(dev->dev, nvmeq->tcbs, ANS_NVMMU_TCB_SIZE, 0);
 	memset((void *)nvmeq->tcbs, 0, ANS_NVMMU_TCB_SIZE);
 
 	switch (qid) {
@@ -231,8 +234,8 @@ static int nvme_alloc_queue(struct nvme_dev *dev, int qid, int depth)
 	return 0;
 
  free_cqdma:
-	dma_free_coherent((void *)nvmeq->cqes, nvmeq->cq_dma_addr,
-			  CQ_SIZE(depth));
+	sart_free_coherent(dev->dev, (void *)nvmeq->cqes, nvmeq->cq_dma_addr,
+			   CQ_SIZE(depth));
  free_nvmeq:
 	return -ENOMEM;
 }
@@ -339,9 +342,14 @@ release_cq:
  */
 static void nvme_submit_cmd(struct nvme_queue *nvmeq, struct nvme_command *cmd)
 {
-	memcpy(&nvmeq->sq_cmds[nvmeq->sq_tail], cmd, sizeof(*cmd));
-
+	u16 tail;
 	struct ans_nvmmu_tcb *tcb;
+	if (nvmeq->q_linear_db)
+		tail = cmd->common.command_id;
+	else
+		tail = nvmeq->sq_tail;
+	memcpy(&nvmeq->sq_cmds[tail], cmd, sizeof(*cmd));
+
 	tcb = ((void *)nvmeq->tcbs) +
 		cmd->common.command_id * ANS_NVMMU_TCB_PITCH;
 	memset(tcb, 0, sizeof(*tcb));
@@ -353,18 +361,18 @@ static void nvme_submit_cmd(struct nvme_queue *nvmeq, struct nvme_command *cmd)
 	tcb->prp2 = cmd->common.dptr.prp2;
 
 	asm volatile("" : : : "memory");
-	if (++nvmeq->sq_tail == nvmeq->q_depth)
-		nvmeq->sq_tail = 0;
-	if (nvmeq->q_linear_db)
+	if (nvmeq->q_linear_db) {
 		writel(cmd->common.command_id, nvmeq->q_linear_db);
-	writel(nvmeq->sq_tail, nvmeq->q_db);
-	printf("submitted command to %p\n", &nvmeq->sq_cmds[nvmeq->sq_tail]);
+	} else {
+		if (++nvmeq->sq_tail == nvmeq->q_depth)
+			nvmeq->sq_tail = 0;
+		writel(nvmeq->sq_tail, nvmeq->q_db);
+	}
 }
 
 /* We read the CQE phase first to check if the rest of the entry is valid */
 static inline bool nvme_cqe_pending(struct nvme_queue *nvmeq)
 {
-	//printf("%08x (status)\n", nvmeq->cqes[nvmeq->cq_head].status);
 	return (le16_to_cpu(nvmeq->cqes[nvmeq->cq_head].status) & 1) ==
 			nvmeq->cq_phase;
 }
@@ -453,7 +461,8 @@ static int nvme_pci_submit_sync_cmd(struct nvme_ctrl *ctrl,
 	struct nvme_dev *dev = to_nvme_dev(ctrl);
 	struct nvme_queue *nvmeq = &dev->queues[qid];
 	struct nvme_request req = { };
-	const u16 tag = nvmeq->counter++ & (nvmeq->q_depth - 1);
+	static int counter;
+	const u16 tag = counter++ & (nvmeq->q_depth - 1);
 	enum dma_data_direction dma_dir;
 	int ret;
 
@@ -624,8 +633,7 @@ static int nvme_pci_enable(struct nvme_dev *dev)
 
 	dev->ctrl.cap = readq(dev->bar + NVME_REG_CAP);
 
-	dev->q_depth = min_t(int, NVME_CAP_MQES(dev->ctrl.cap) + 1,
-			     io_queue_depth);
+	dev->q_depth = NVME_CAP_MQES(dev->ctrl.cap);
 	dev->db_stride = 1 << NVME_CAP_STRIDE(dev->ctrl.cap);
 	dev->dbs = dev->bar + 4096;
 
@@ -640,7 +648,6 @@ static int nvme_reset_work(struct nvme_dev *dev)
 	if (result)
 		goto out;
 
-	printf("dbs at %p, stride %lx\n", dev->dbs, dev->db_stride);
 
 	result = nvme_pci_configure_admin_queue(dev);
 	if (result)
@@ -691,13 +698,6 @@ static const struct nvme_ctrl_ops nvme_pci_ctrl_ops = {
 	.reg_read64		= nvme_pci_reg_read64,
 	.submit_sync_cmd	= nvme_pci_submit_sync_cmd,
 };
-
-static void nvme_dev_map(struct nvme_dev *dev)
-{
-	struct resource *iomem = dev_request_mem_resource(dev->dev, 0);
-
-	dev->bar = IOMEM(iomem->start);
-}
 
 static void nvme_delete_queue(struct nvme_queue *nvmeq, u8 opcode)
 {
@@ -782,12 +782,12 @@ static dma_addr_t sart_map_single(struct device_d *dev, void *buffer,
 	void *mem = buffer;
 	int id;
 	struct nvme_dev *priv = dev->priv;
-	unsigned long off = ((unsigned long)mem & 16383);
+	unsigned long off = ((unsigned long)mem & 4095);
 
 	size += off;
 	mem -= off;
 
-	size = ALIGN(size, 16384);
+	size = ALIGN(size+4096, 4096);
 
 	for (id = 0; id < 16; id++) {
 		if ((readl(priv->sart + ANS_SART_SIZE(id)) & 0xff000000) == 0)
@@ -795,11 +795,9 @@ static dma_addr_t sart_map_single(struct device_d *dev, void *buffer,
 	}
 	if (id == 16) {
 		printf("%s: no free SART registers\n", __func__);
-		return 0;
+		return (dma_addr_t)mem + off;
 	}
 
-	writel((unsigned long)mem >> 12, priv->sart + ANS_SART_ADDR(id));
-	writel(0xff000000 + (size >> 12), priv->sart + ANS_SART_SIZE(id));
 	readl(priv->sart + ANS_SART_SIZE(id));
 
 	printf("SART register %d: %p - %p\n",
@@ -815,28 +813,35 @@ static void sart_unmap_single(struct device_d *dev, dma_addr_t addr,
 	int id;
 	struct nvme_dev *priv = dev->priv;
 
-	size += (unsigned long)mem & 16383;
-	mem -= (unsigned long)mem & 16383;
-	addr -= (unsigned long)mem & 16383;
+	if (!addr)
+		return;
 
-	size = ALIGN(size, 16384);
+	addr -= (unsigned long)mem & 4095;
+	mem -= (unsigned long)mem & 4095;
 
 	for (id = 0; id < 16; id++) {
 		if ((readl(priv->sart + ANS_SART_ADDR(id)) == ((unsigned long)addr>>12)))
 			break;
 	}
 	if (id == 16) {
-		printf("%s: no free SART registers\n", __func__);
+		printf("%s: couldn't find SART register for %p\n", __func__,
+		       (void *)addr);
 		return;
 	}
 
 	writel(0x00000000, priv->sart + ANS_SART_SIZE(id));
 	readl(priv->sart + ANS_SART_SIZE(id));
 
-	printf("SART register %d: %p - %p\n",
-	       id, mem, mem + size);
+	printf("SART register[unmap] %d: %p - %p\n",
+	       id, mem, mem);
 
 	return;
+}
+
+static void sart_free_coherent(struct device_d *dev, void *ptr, dma_addr_t addr,
+			       size_t size)
+{
+	sart_unmap_single(dev, addr, size, 0);
 }
 
 static void *sart_alloc_coherent(struct device_d *dev, size_t size,
@@ -845,7 +850,7 @@ static void *sart_alloc_coherent(struct device_d *dev, size_t size,
 	void *mem = xmemalign(16384, ALIGN(size,16384));
 	int id;
 	struct nvme_dev *priv = dev->priv;
-	size = ALIGN(size, 16384);
+	size = ALIGN(size+16384, 16384);
 
 	for (id = 0; id < 16; id++) {
 		if ((readl(priv->sart + ANS_SART_SIZE(id)) & 0xff000000) == 0)
@@ -853,14 +858,15 @@ static void *sart_alloc_coherent(struct device_d *dev, size_t size,
 	}
 	if (id == 16) {
 		printf("%s: no free SART registers\n", __func__);
-		return ERR_PTR(-ENOMEM);
+		*ret = (dma_addr_t)mem;
+		return mem;
 	}
 
-	writel((unsigned long)mem >> 12, priv->sart + ANS_SART_ADDR(id));
-	writel(0xff000000 + (size >> 12), priv->sart + ANS_SART_SIZE(id));
+	//writel((unsigned long)mem >> 12, priv->sart + ANS_SART_ADDR(id));
+	//writel(0xff000000 + (size >> 12), priv->sart + ANS_SART_SIZE(id));
 	readl(priv->sart + ANS_SART_SIZE(id));
 
-	printf("SART register %d: %p - %p\n",
+	printf("SART[alloc] register %d: %p - %p\n",
 	       id, mem, mem + size);
 
 	*ret = (dma_addr_t)mem;
@@ -890,8 +896,8 @@ static int apple_nvme_probe(struct device_d *dev)
 		return PTR_ERR(iores);
 	priv->sart = IOMEM(iores->start);
 
-	mbox_addr = apple_mbox_phys_start;
-	mbox_size = 65536;
+	mbox_addr = apple_mbox_phys_start + 0x1000;
+	mbox_size = 0xc000;
 
 	for (id = 0; id < 16; id++) {
 		if ((readl(priv->sart + ANS_SART_SIZE(id)) & 0xff000000) == 0)
