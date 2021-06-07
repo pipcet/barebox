@@ -1,5 +1,6 @@
 config HW_HAS_PCI
 	bool "Compile in PCI core" if COMPILE_TEST
+	default y
 
 if HW_HAS_PCI
 
