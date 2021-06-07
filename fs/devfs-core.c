@@ -305,7 +305,7 @@ static struct cdev *__devfs_add_partition(struct cdev *cdev,
 		const struct devfs_partition *partinfo, loff_t *end)
 {
 	loff_t offset, size;
-	static struct cdev *new;
+	struct cdev *new;
 
 	if (cdev_by_name(partinfo->name))
 		return ERR_PTR(-EEXIST);
