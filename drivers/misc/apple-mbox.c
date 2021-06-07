@@ -49,9 +49,9 @@ static void apple_mbox_wait(struct device_d *dev, struct apple_mbox_priv *priv)
 		udelay(1);
 	if (retry == 0)
 		dev_err(dev, "%s: I2A timeout\n", __func__);
-	dev_info(dev, "you have mail %08x %08x\n",
-		 readl(priv->base + REG_A2I_STAT),
-		 readl(priv->base + REG_I2A_STAT));
+	//dev_info(dev, "you have mail %08x %08x\n",
+	//readl(priv->base + REG_A2I_STAT),
+	//readl(priv->base + REG_I2A_STAT));
 }
 
 static int mbox_probe(struct device_d *dev)
