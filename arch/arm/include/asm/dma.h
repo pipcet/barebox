@@ -12,7 +12,7 @@ static inline void *dma_alloc(size_t size)
 #ifndef CONFIG_MMU
 static inline void *dma_alloc_coherent(size_t size, dma_addr_t *dma_handle)
 {
-	void *ret = xmemalign(4096, size);
+	void *ret = xmemalign(16384, size);
 	if (dma_handle)
 		*dma_handle = (dma_addr_t)ret;
 
