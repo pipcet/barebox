@@ -489,7 +489,7 @@ int nvme_enable_ctrl(struct nvme_ctrl *ctrl, u64 cap)
 	ret = ctrl->ops->reg_write32(ctrl, NVME_REG_CC, ctrl->ctrl_config);
 	if (ret)
 		return ret;
-	return nvme_wait_ready(ctrl, cap, true);
+	return 0;
 }
 EXPORT_SYMBOL_GPL(nvme_enable_ctrl);
 
@@ -575,7 +575,6 @@ int nvme_init_identify(struct nvme_ctrl *ctrl)
 	ret = nvme_identify_ctrl(ctrl, &id);
 	if (ret) {
 		dev_err(ctrl->dev, "Identify Controller failed (%d)\n", ret);
-		return -EIO;
 	}
 
 	ret = nvme_init_subsystem(ctrl, id);
