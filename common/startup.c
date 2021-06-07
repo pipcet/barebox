@@ -368,7 +368,7 @@ static int run_init(void)
 	console_ctrlc_allow();
 
 	if (autoboot == AUTOBOOT_BOOT)
-		run_command("boot");
+		run_command("while sleep 1; do usb; usbgadget -a; done");
 
 	if (autoboot == AUTOBOOT_MENU)
 		run_command(MENUFILE);
