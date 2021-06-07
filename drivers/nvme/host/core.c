@@ -575,6 +575,7 @@ int nvme_init_identify(struct nvme_ctrl *ctrl)
 	ret = nvme_identify_ctrl(ctrl, &id);
 	if (ret) {
 		dev_err(ctrl->dev, "Identify Controller failed (%d)\n", ret);
+		return -EIO;
 	}
 
 	ret = nvme_init_subsystem(ctrl, id);
