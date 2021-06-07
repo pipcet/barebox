@@ -1,16 +1,20 @@
 # SPDX-License-Identifier: GPL-2.0-only
 config HAVE_CLK
+        default y
 	bool
 
 config CLKDEV_LOOKUP
+        default y
 	bool
 
 config COMMON_CLK
 	select HAVE_CLK
+	default y
 	bool
 
 config COMMON_CLK_OF_PROVIDER
 	bool
+	default y
 	depends on OFTREE
 	help
 	  Clock driver provides OF-Tree based clock lookup.
