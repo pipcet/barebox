@@ -848,27 +848,6 @@ static void *sart_alloc_coherent(struct device_d *dev, size_t size,
 				 dma_addr_t *ret)
 {
 	void *mem = xmemalign(16384, ALIGN(size,16384));
-	int id;
-	struct nvme_dev *priv = dev->priv;
-	size = ALIGN(size+16384, 16384);
-
-	for (id = 0; id < 16; id++) {
-		if ((readl(priv->sart + ANS_SART_SIZE(id)) & 0xff000000) == 0)
-			break;
-	}
-	if (id == 16) {
-		printf("%s: no free SART registers\n", __func__);
-		*ret = (dma_addr_t)mem;
-		return mem;
-	}
-
-	//writel((unsigned long)mem >> 12, priv->sart + ANS_SART_ADDR(id));
-	//writel(0xff000000 + (size >> 12), priv->sart + ANS_SART_SIZE(id));
-	readl(priv->sart + ANS_SART_SIZE(id));
-
-	printf("SART[alloc] register %d: %p - %p\n",
-	       id, mem, mem + size);
-
 	*ret = (dma_addr_t)mem;
 	return mem;
 }
