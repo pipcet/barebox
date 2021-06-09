@@ -9,7 +9,7 @@
 
 /dts-v1/;
 
-#include "t8103.dtsi"
+#include "apple-m1.dtsi"
 
 / {
 	compatible = "apple,j274", "apple,t8103", "apple,arm-platform";
