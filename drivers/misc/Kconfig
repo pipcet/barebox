@@ -36,6 +36,16 @@ config UBOOTVAR
 	  While it can be used standalone, it is best when coupled
 	  with corresponding filesystem driver.
 
+config APPLE_DART
+        bool "Apple M1 DART driver"
+	help
+	  Apple M1 DART driver.
+
+config APPLE_MBOX
+        bool "Apple M1 mailbox driver"
+	help
+	  Apple M1 mailbox driver.
+
 config ACPI_TEST
 	bool "ACPI Test driver"
 	depends on ACPI

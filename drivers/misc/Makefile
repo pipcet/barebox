@@ -9,3 +9,5 @@ obj-$(CONFIG_DEV_MEM)		+= mem.o
 obj-$(CONFIG_UBOOTVAR)		+= ubootvar.o
 obj-$(CONFIG_ACPI_TEST)		+= acpi-test.o
 obj-$(CONFIG_STARFIVE_PWRSEQ)	+= starfive-pwrseq.o
+obj-$(CONFIG_APPLE_DART)	+= apple-dart.o
+obj-$(CONFIG_APPLE_MBOX)	+= apple-mbox.o
