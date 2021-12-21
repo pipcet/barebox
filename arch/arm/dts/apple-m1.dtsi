@@ -20,11 +20,11 @@
 
 	framebuffer0: framebuffer@0 {
 		compatible = "apple,simple-framebuffer", "simple-framebuffer";
-		reg = <0x0b 0xdf438000 0x00 0x3e80000>;
-		format = "x2r10g10b10";
-		height = <0x640>;
-		stride = <0x2800>;
-		width = <0xa00>;
+		reg = <0x09 0xdd98c000 0x00 0x3e80000>;
+		format = "a8r8g8b8";
+		height = <1080>;
+		stride = <7680>;
+		width = <1920>;
 		status = "okay";
 	};
 	cpus {

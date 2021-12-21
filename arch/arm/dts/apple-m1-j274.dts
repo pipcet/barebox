@@ -31,7 +31,7 @@
 
 	memory@800000000 {
 		device_type = "memory";
-		reg = <0x8 0 0x2 0>; /* To be filled by loader */
+		reg = <0x8 0 0x1 0>; /* To be filled by loader */
 	};
 };
 
