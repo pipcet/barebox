@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 menuconfig LED
 	bool "LED support"
 	select POLLER

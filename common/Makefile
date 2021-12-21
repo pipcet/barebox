@@ -1,3 +1,4 @@
+obj-y				+= boards/
 obj-y				+= memory.o
 obj-y				+= memory_display.o
 pbl-$(CONFIG_PBL_CONSOLE)	+= memory_display.o
@@ -63,9 +64,7 @@ obj-$(CONFIG_BOOTCHOOSER)	+= bootchooser.o
 obj-$(CONFIG_UIMAGE)		+= image.o uimage.o
 obj-$(CONFIG_FITIMAGE)		+= image-fit.o
 obj-$(CONFIG_MENUTREE)		+= menutree.o
-obj-$(CONFIG_EFI_BOOTUP)	+= efi/
-obj-$(CONFIG_EFI_GUID)		+= efi-guid.o
-obj-$(CONFIG_EFI_DEVICEPATH)	+= efi-devicepath.o
+obj-$(CONFIG_EFI)		+= efi/
 lwl-$(CONFIG_IMD)		+= imd-barebox.o
 obj-$(CONFIG_IMD)		+= imd.o
 obj-y				+= file-list.o

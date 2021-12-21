@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2016, NVIDIA CORPORATION.
  * Copyright (c) 2019, Ahmad Fatoum, Pengutronix
@@ -361,6 +361,10 @@ int eqos_set_ethaddr(struct eth_device *edev, const unsigned char *mac)
 static int phy_resume(struct phy_device *phydev)
 {
 	int bmcr;
+
+	// Bus will be NULL if a fixed-link is used.
+	if (!phydev->bus)
+		return 0;
 
 	bmcr = phy_read(phydev, MII_BMCR);
 	if (bmcr < 0)
@@ -824,6 +828,7 @@ static void eqos_probe_dt(struct device_d *dev, struct eqos *eqos)
 
 int eqos_probe(struct device_d *dev, const struct eqos_ops *ops, void *priv)
 {
+	struct device_node *np = dev->device_node;
 	struct mii_bus *miibus;
 	struct resource *iores;
 	struct eqos *eqos;
@@ -862,7 +867,10 @@ int eqos_probe(struct device_d *dev, const struct eqos_ops *ops, void *priv)
 	miibus->read = eqos_mdio_read;
 	miibus->write = eqos_mdio_write;
 	miibus->priv = eqos;
-	miibus->dev.device_node = of_get_child_by_name(dev->device_node, "mdio");
+
+	miibus->dev.device_node = of_get_compatible_child(np, "snps,dwmac-mdio");
+	if (!miibus->dev.device_node)
+		miibus->dev.device_node = of_get_child_by_name(np, "mdio");
 
 	ret = eqos_init(dev, eqos);
 	if (ret)

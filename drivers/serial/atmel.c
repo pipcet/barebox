@@ -1,17 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * (c) 2004 Sascha Hauer <sascha@saschahauer.de>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- *
  */
 
 #include <common.h>
@@ -427,6 +416,7 @@ static int atmel_serial_probe(struct device_d *dev)
 {
 	struct atmel_uart_port *uart;
 	struct console_device *cdev;
+	int ret;
 
 	uart = xzalloc(sizeof(struct atmel_uart_port));
 	cdev = &uart->uart;
@@ -438,7 +428,9 @@ static int atmel_serial_probe(struct device_d *dev)
 	cdev->set_mode = atmel_serial_set_mode;
 	cdev->linux_console_name = "ttyAT";
 
-	atmel_serial_init_port(cdev);
+	ret = atmel_serial_init_port(cdev);
+	if (ret)
+		return ret;
 
 	/* Enable UART */
 

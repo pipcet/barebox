@@ -1,15 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * (c) 2012 Sascha Hauer <s.hauer@pengutronix.de>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
 #include <common.h>
@@ -39,6 +30,7 @@ struct imx_wd {
 	struct device_d *dev;
 	const struct imx_wd_ops *ops;
 	struct restart_handler restart;
+	struct restart_handler restart_warm;
 	bool ext_reset;
 	bool bigendian;
 };
@@ -183,6 +175,14 @@ static void __noreturn imxwd_force_soc_reset(struct restart_handler *rst)
 	hang();
 }
 
+static void __noreturn imxwd_force_soc_reset_internal(struct restart_handler *rst)
+{
+	struct imx_wd *priv = container_of(rst, struct imx_wd, restart_warm);
+
+	priv->ext_reset = false;
+	imxwd_force_soc_reset(&priv->restart);
+}
+
 static void imx_watchdog_detect_reset_source(struct imx_wd *priv)
 {
 	u16 val = imxwd_read(priv, IMX21_WDOG_WSTR);
@@ -284,8 +284,15 @@ static int imx_wd_probe(struct device_d *dev)
 
 	priv->restart.name = "imxwd";
 	priv->restart.restart = imxwd_force_soc_reset;
+	priv->restart.priority = RESTART_DEFAULT_PRIORITY;
 
 	restart_handler_register(&priv->restart);
+
+	priv->restart_warm.name = "imxwd-warm";
+	priv->restart_warm.restart = imxwd_force_soc_reset_internal;
+	priv->restart_warm.priority = RESTART_DEFAULT_PRIORITY - 10;
+
+	restart_handler_register(&priv->restart_warm);
 
 	return 0;
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * caam - Freescale FSL CAAM support for hw_random
  *

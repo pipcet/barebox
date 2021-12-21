@@ -1,16 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright 2013 GE Intelligent Platforms, Inc
  * Copyright 2006,2009 Freescale Semiconductor, Inc.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  *
  * Early I2C support functions to read SPD data or board
  * information.
@@ -126,7 +117,7 @@ static int i2c_fsl_start(struct fsl_i2c *fsl_i2c)
 	temp |= I2CR_MTX | I2CR_TXAK;
 	fsl_i2c_write_reg(temp, fsl_i2c, FSL_I2C_I2CR);
 
-	return ret;
+	return 0;
 }
 
 static void i2c_fsl_stop(struct fsl_i2c *fsl_i2c)

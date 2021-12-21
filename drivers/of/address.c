@@ -1,18 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * address.c - address related devicetree functions
  *
  * Copyright (c) 2012 Sascha Hauer <s.hauer@pengutronix.de>, Pengutronix
  *
  * based on Linux devicetree support
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 #include <common.h>
 #include <of.h>
@@ -133,8 +125,10 @@ static unsigned int of_bus_pci_get_flags(const __be32 *addr)
 	case 0x01:
 		flags |= IORESOURCE_IO;
 		break;
-	case 0x02: /* 32 bits */
 	case 0x03: /* 64 bits */
+		flags |= IORESOURCE_MEM_64;
+		/* fallthrough */
+	case 0x02: /* 32 bits */
 		flags |= IORESOURCE_MEM;
 		break;
 	}

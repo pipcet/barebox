@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2019 Ahmad Fatoum
  */
@@ -47,7 +47,7 @@ static int acpi_test_probe(struct device_d *dev)
 
 static void acpi_test_remove(struct device_d *dev)
 {
-	dev_info(dev, "FADT driver removed\n");
+	dev_dbg(dev, "FADT driver removed\n");
 }
 
 static struct acpi_driver acpi_test_driver = {

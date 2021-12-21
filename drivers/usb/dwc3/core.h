@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * core.h - DesignWare USB3 DRD Core Header
  *
@@ -1002,6 +1002,8 @@ struct dwc3 {
 
 	struct clk_bulk_data	*clks;
 	int			num_clks;
+
+	struct reset_control	*reset;
 
 	struct phy		*usb2_generic_phy;
 	struct phy		*usb3_generic_phy;

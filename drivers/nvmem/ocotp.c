@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * ocotp.c - i.MX6 ocotp fusebox driver
  *
@@ -7,10 +8,6 @@
  *
  * Copyright (c) 2010 Baruch Siach <baruch@tkos.co.il>,
  * 	Orex Computed Radiography
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
  *
  * http://www.opensource.org/licenses/gpl-license.html
  * http://www.gnu.org/copyleft/gpl.html
@@ -936,6 +933,9 @@ static __maybe_unused struct of_device_id imx_ocotp_dt_ids[] = {
 		.data = &imx8mq_ocotp_data,
 	}, {
 		.compatible = "fsl,imx8mm-ocotp",
+		.data = &imx8mq_ocotp_data,
+	}, {
+		.compatible = "fsl,imx8mn-ocotp",
 		.data = &imx8mq_ocotp_data,
 	}, {
 		.compatible = "fsl,vf610-ocotp",

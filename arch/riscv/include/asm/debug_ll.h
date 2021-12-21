@@ -17,20 +17,26 @@
 #if defined CONFIG_DEBUG_ERIZO
 #define DEBUG_LL_UART_ADDR	0x90000000
 #define DEBUG_LL_UART_CLK       (24000000 / 16)
+#define DEBUG_LL_UART_SHIFT	2
+#define DEBUG_LL_UART_IOSIZE32
 #elif defined CONFIG_DEBUG_STARFIVE
 #define DEBUG_LL_UART_ADDR	0x12440000
 #define DEBUG_LL_UART_CLK       (100000000 / 16)
-#endif
-
 #define DEBUG_LL_UART_SHIFT	2
 #define DEBUG_LL_UART_IOSIZE32
+#elif defined CONFIG_DEBUG_RISCV_VIRT
+#define DEBUG_LL_UART_ADDR	0x10000000
+#define DEBUG_LL_UART_CLK       (58982400  / 16)
+#define DEBUG_LL_UART_SHIFT	0
+#define DEBUG_LL_UART_IOSIZE8
+#endif
 
 #define DEBUG_LL_UART_BPS       CONFIG_BAUDRATE
 #define DEBUG_LL_UART_DIVISOR   (DEBUG_LL_UART_CLK / DEBUG_LL_UART_BPS)
 
 #include <asm/debug_ll_ns16550.h>
 
-#elif defined CONFIG_DEBUG_SIFIVE
+#elif defined CONFIG_DEBUG_SIFIVE && !defined __ASSEMBLY__
 
 #include <io.h>
 
@@ -43,6 +49,9 @@ static inline void PUTC_LL(char ch)
 
 	writel(ch, uart0);
 }
+#elif defined CONFIG_DEBUG_LITEX
+
+#include <asm/debug_ll_litex.h>
 
 #endif
 

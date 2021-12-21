@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Rockchip pinctrl and gpio driver for Barebox
  *
@@ -8,15 +9,6 @@
  *   Copyright (C) 2012 Samsung Electronics Co., Ltd.
  *   Copyright (C) 2012 Linaro Ltd
  *   Copyright (C) 2011-2012 Jean-Christophe PLAGNIOL-VILLARD
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
 #include <common.h>
@@ -342,6 +334,9 @@ static int rockchip_gpio_probe(struct device_d *dev)
 	int ret, bankno;
 
 	bankno = of_alias_get_id(dev->device_node, "gpio");
+	if (bankno < 0)
+		return bankno;
+
 	bank = &ctrl->pin_banks[bankno];
 	gpio = &bank->bgpio_chip.gc;
 

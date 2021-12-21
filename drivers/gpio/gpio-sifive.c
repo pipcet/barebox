@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2019 SiFive
  */
 
 #include <linux/basic_mmio_gpio.h>
-#include <printk.h>
+#include <linux/printk.h>
 #include <driver.h>
 #include <errno.h>
 

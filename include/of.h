@@ -241,6 +241,8 @@ extern int of_property_write_string(struct device_node *np, const char *propname
 				    const char *value);
 extern int of_property_write_strings(struct device_node *np, const char *propname,
 				    ...) __attribute__((__sentinel__));
+int of_property_sprintf(struct device_node *np, const char *propname, const char *fmt, ...)
+	__attribute__ ((format(__printf__, 3, 4)));
 
 extern struct device_node *of_parse_phandle(const struct device_node *np,
 					    const char *phandle_name,
@@ -279,6 +281,7 @@ extern struct device_d *of_device_enable_and_register_by_name(const char *name);
 extern struct device_d *of_device_enable_and_register_by_alias(
 							const char *alias);
 
+extern struct device_d *of_device_create_on_demand(struct device_node *np);
 extern int of_device_ensure_probed(struct device_node *np);
 extern int of_device_ensure_probed_by_alias(const char *alias);
 extern int of_devices_ensure_probed_by_property(const char *property_name);
@@ -370,6 +373,11 @@ static inline struct device_d *of_platform_device_create(struct device_node *np,
 
 static inline void of_platform_device_dummy_drv(struct device_d *dev)
 {
+}
+
+static inline struct device_d *of_device_create_on_demand(struct device_node *np)
+{
+	return NULL;
 }
 
 static inline int of_device_ensure_probed(struct device_node *np)

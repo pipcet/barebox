@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Raspberry PI MCI driver
  *
@@ -8,22 +9,6 @@
  * Portions (e.g. read/write macros, concepts for back-to-back register write
  * timing workarounds) obviously extracted from the Linux kernel at:
  * https://github.com/raspberrypi/linux.git rpi-3.6.y
- *
- * The Linux kernel code has the following (c) and license, which is hence
- * propagated to here:
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * Author: Wilhelm Lundgren <wilhelm.lundgren@cybercom.com>
  */
@@ -84,16 +69,20 @@ static u32 bcm2835_sdhci_read32(struct sdhci *sdhci, int reg)
 	return readl(host->regs + reg);
 }
 
-static u32 bcm2835_mci_wait_command_done(struct bcm2835_mci_host *host)
+static int bcm2835_mci_wait_command_done(struct bcm2835_mci_host *host)
 {
 	u32 interrupt = 0;
+	uint64_t start;
 
+	start = get_time_ns();
 	while (true) {
 		interrupt = sdhci_read32(&host->sdhci, SDHCI_INT_STATUS);
 		if (interrupt & SDHCI_INT_INDEX)
 			return -EPERM;
 		if (interrupt & SDHCI_INT_CMD_COMPLETE)
 			break;
+		if (is_timeout(start, SECOND))
+			return -ETIMEDOUT;
 	}
 	return 0;
 }
@@ -127,7 +116,8 @@ static void bcm2835_mci_reset_emmc(struct bcm2835_mci_host *host, u32 reset,
  */
 static int bcm2835_mci_request(struct mci_host *mci, struct mci_cmd *cmd,
 		struct mci_data *data) {
-	u32 command, block_data = 0, ret = 0, transfer_mode = 0;
+	u32 command, block_data = 0, transfer_mode = 0;
+	int ret;
 	u32 wait_inhibit_mask = SDHCI_CMD_INHIBIT_CMD | SDHCI_CMD_INHIBIT_DATA;
 	struct bcm2835_mci_host *host = to_bcm2835_host(mci);
 
@@ -360,10 +350,7 @@ static int bcm2835_mci_reset(struct mci_host *mci, struct device_d *mci_dev)
 	sdhci_write32(&host->sdhci, SDHCI_INT_STATUS,
 			0xFFFFFFFF);
 
-	/*Now write command 0 and see if we get response*/
-	sdhci_write32(&host->sdhci, SDHCI_ARGUMENT, 0x0);
-	sdhci_write32(&host->sdhci, SDHCI_TRANSFER_MODE__COMMAND, 0x0);
-	return bcm2835_mci_wait_command_done(host);
+	return 0;
 }
 
 static int bcm2835_mci_probe(struct device_d *hw_dev)

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 menuconfig NAND
 	bool "NAND support"
 	help
@@ -41,6 +42,13 @@ config NAND_IMX
 	  This is not for the "MXS" series i.MX processors (23 & 28), or i.MX6
 	  and later, which use the GPMI NAND controller from the MXS series. 
 	  See the i.MX 'mxs' driver for those chips.
+
+config NAND_FSL_IFC
+	bool
+	prompt "FSL IFC NAND driver"
+	depends on ARCH_LAYERSCAPE
+	help
+	  Freescale IFC NAND driver for various chips.
 
 config NAND_MXS
 	bool

@@ -1,3 +1,5 @@
+source "common/boards/Kconfig"
+
 config GREGORIAN_CALENDER
 	bool
 
@@ -10,7 +12,7 @@ config HAS_MODULES
 config HAS_CACHE
 	bool
 	help
-	  This allows you do run "make ARCH=sandbox allyesconfig".
+	  This allows you to run "make ARCH=sandbox allyesconfig".
 
 	  Drivers that depend on a cache implementation can depend on this
 	  config, so that you don't get a compilation error.
@@ -18,7 +20,7 @@ config HAS_CACHE
 config HAS_DMA
 	bool
 	help
-	  This allows you do run "make ARCH=sandbox allyesconfig".
+	  This allows you to run "make ARCH=sandbox allyesconfig".
 
 	  Drivers that depend on a DMA implementation can depend on this
 	  config, so that you don't get a compilation error.
@@ -42,9 +44,6 @@ config USE_COMPRESSED_DTB
 	depends on ARM || RISCV
 	select UNCOMPRESS
 	select LZO_DECOMPRESS
-
-config ELF
-	bool "ELF Support" if COMPILE_TEST
 
 config FILETYPE
 	bool
@@ -77,14 +76,6 @@ config MENUTREE
 	bool
 	select GLOB
 	select GLOB_SORT
-
-config EFI_GUID
-	bool
-	help
-	  With this option a table of EFI guids is compiled in.
-
-config EFI_DEVICEPATH
-	bool
 
 config ARCH_DMA_ADDR_T_64BIT
 	bool
@@ -616,6 +607,9 @@ config BOOTM_AIMAGE
 	help
 	  Support using Android Images.
 
+config ELF
+	bool "ELF Support" if COMPILE_TEST
+
 config BOOTM_ELF
 	bool
 	depends on BOOTM
@@ -630,7 +624,7 @@ config BOOTM_FITIMAGE
 	select FITIMAGE
 	depends on BOOTM && ARM
 	help
-	  Support using Flattened Image Tree (FIT) Images. FIT is an image
+	  Support using Flattened Image Tree (FIT) images. FIT is an image
 	  format introduced by U-Boot. A FIT image contains one or multiple
 	  kernels, device trees and initrds. The FIT image itself is a flattened
 	  device tree binary. Have a look at the u-boot source tree
@@ -711,7 +705,7 @@ config MMCBLKDEV_ROOTARG
 	  variable is set or the used blspec entry contains 'linux-appendroot'.
 
 	  Note: It is crucial that the kernel device tree and the barebox device
-	  tree uses the same mmc aliases.
+	  tree use the same mmc aliases.
 
 	  [1] fa2d0aa96941 ("mmc: core: Allow setting slot index via device tree
 	      alias")
@@ -733,19 +727,6 @@ config SYSTEM_PARTITIONS
 config IMD
 	select CRC32
 	bool "barebox metadata support"
-
-config IMD_TARGET
-	bool "build bareboximd target tool"
-	depends on IMD
-
-config KERNEL_INSTALL_TARGET
-	bool
-	depends on !SANDBOX
-	prompt "Build kernel-install utility for the target"
-	help
-	  Enable this to compile the kernel-install script using the cross
-	  compiler. The utility for the target will be under
-	  scripts/kernel-install-target
 
 choice
 	prompt "console support"
@@ -812,6 +793,17 @@ config CONSOLE_ALLOW_COLOR
 	  compile time default for colored console output. After boot it
 	  can be controlled using global.allow_color.
 
+config CONSOLE_DISABLE_INPUT
+	prompt "Disable input on all consoles by default (non-interactive)"
+	def_bool CONSOLE_NONE
+	help
+	  If enabled, all consoles are initially configured to not accept any input,
+	  making the consoles effectively non-interactive.
+	  The active device parameter can be used to override this on a per-console
+	  basis.
+	  CAUTION: this will also disable input devices by default, since they are
+	  registered as consoles.
+
 config PBL_CONSOLE
 	depends on PBL_IMAGE
 	depends on !CONSOLE_NONE
@@ -842,6 +834,7 @@ config ENV_HANDLING
 	  startup) will bring them back. If unsure, say yes.
 
 config DEFAULT_ENVIRONMENT
+	select CRC32
 	bool
 	default y if ENV_HANDLING
 	prompt "Compile in default environment"
@@ -969,7 +962,7 @@ config DEFAULT_ENVIRONMENT_GENERIC_NEW_IKCONFIG
 	depends on DEFAULT_ENVIRONMENT_GENERIC_NEW
 	help
 	  This option embeds the used barebox Kconfig .config file into the
-	  environment as /env/data/config. This will increases barebox image
+	  environment as /env/data/config. This will increase barebox' image
 	  size. If unsure, say n here.
 
 config DEFAULT_ENVIRONMENT_PATH
@@ -980,22 +973,6 @@ config DEFAULT_ENVIRONMENT_PATH
 	  Space separated list of paths from which the default environment will
 	  be taken. Relative paths will be relative to the barebox top-level
 	  directory, but absolute paths are fine as well.
-
-config BAREBOXENV_TARGET
-	bool
-	depends on !SANDBOX
-	prompt "build bareboxenv tool for target"
-	help
-	  'bareboxenv' is a tool to access the barebox environment from a running Linux
-	  system. Say yes here to build it for the target.
-
-config BAREBOXCRC32_TARGET
-	bool
-	prompt "build bareboxcrc32 tool for target"
-	depends on !SANDBOX
-	help
-	  'bareboxcrc32' is a userspacetool to generate the crc32 checksums the same way
-	  barebox does. Say yes here to build it for the target.
 
 config HAS_SCHED
 	bool
@@ -1009,9 +986,9 @@ config BTHREAD
 	select HAS_SCHED
 	depends on HAS_ARCH_SJLJ
 	help
-	 barebox threads are lightweight cooperative (green) threads that are
-	 scheduled within delay loops and the console idle to asynchronously
-	 execute actions, like checking for link up or feeding a watchdog.
+	  barebox threads are lightweight cooperative (green) threads that are
+	  scheduled within delay loops and the console idle to asynchronously
+	  execute actions, like checking for link up or feeding a watchdog.
 
 config STATE
 	bool "generic state infrastructure"
@@ -1027,7 +1004,7 @@ config STATE_CRYPTO
 	select DIGEST
 	select DIGEST_HMAC_GENERIC
 	help
-	  This options enables HMAC based authentication support for
+	  This option enables HMAC based authentication support for
 	  the state's header and data. This means the state framework
 	  can verify both the data integrity and the authentication of
 	  the state's header and data.
@@ -1091,6 +1068,30 @@ config SYSTEMD_OF_WATCHDOG
 	  in the kernel device tree. If the kernel is booted without a device
 	  tree or with one that lacks aliases, nothing is added.
 
+config EXTERNAL_DTS_FRAGMENTS
+	string "external dts file fragments"
+	depends on OFTREE
+	help
+	  List of dts fragment files that will be appended to Barebox's device
+	  tree(s) source when building the dtb file(s).  If multiple files are
+	  listed, they will be appended in order.  Relative filenames will use
+	  the dtc include search path.
+
+	  A preprocessor macro based on the name of the main dts will be
+	  defined, which allows the dts fragments to be based on which image of
+	  a multi image build they are being used in. Given the dts filename
+	  used for a board is "foo-board.dts" the external dts usage can be
+	  limited to that board with
+
+	  #ifdef foo_board_dts
+	  ...
+	  #endif
+
+	  It is not intended that this is put into Barebox' defconfig files.
+	  Instead, it's an external build system's job, like Yocto or buildroot,
+	  to add dts fragments from outside the Barebox source tree into the
+	  Barebox build.
+
 menu "OP-TEE loading"
 
 config OPTEE_SIZE
@@ -1120,7 +1121,7 @@ config PBL_OPTEE
 	depends on !THUMB2_BAREBOX
 	help
 	  Allows starting OP-TEE during lowlevel initialization of the PBL.
-	  Requires explicit support in the boards lowlevel file.
+	  Requires explicit support in the board's lowlevel file.
 
 endmenu
 
@@ -1395,9 +1396,18 @@ config DEBUG_STARFIVE
 	depends on SOC_STARFIVE
 	select DEBUG_LL_NS16550
 
+config DEBUG_RISCV_VIRT
+	bool "RISC-V Virt ns16550 port"
+	depends on SOC_VIRT
+	select DEBUG_LL_NS16550
+
 config DEBUG_SIFIVE
 	bool "SiFive serial0 port"
 	depends on SOC_SIFIVE
+
+config DEBUG_LITEX
+	bool "LiteX serial port"
+	depends on SOC_LITEX
 
 endchoice
 
@@ -1499,8 +1509,15 @@ config PBL_BREAK
 	bool "Execute software break on pbl start"
 	depends on ARM && (!CPU_32v4T && !ARCH_TEGRA)
 	help
-	  If this enabled, barebox will be compiled with BKPT instruction
+	  If enabled, barebox will be compiled with BKPT instruction
 	  on early pbl init. This option should be used only with JTAG debugger!
+
+config PRINTF_FULL
+	bool "Support all extended printf format specifiers"
+	help
+	  Adds support for lesser used format specifiers like UUIDs and
+	  hex strings. Code requiring them should select it directly,
+	  so this is mainly for debugging. If unsure, say no.
 
 source "lib/Kconfig.ubsan"
 source "lib/kasan/Kconfig"
@@ -1526,6 +1543,8 @@ config COMPILE_TEST
 	  inclusion of unrelated drivers.
 
 endmenu
+
+source "common/efi/Kconfig"
 
 config HAS_DEBUG_LL
 	bool

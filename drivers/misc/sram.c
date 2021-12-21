@@ -1,15 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * drivers/misc/sram.c - generic memory mapped SRAM driver
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
 #include <common.h>
@@ -35,24 +26,17 @@ static int sram_probe(struct device_d *dev)
 {
 	struct resource *iores;
 	struct sram *sram;
-	struct resource *res;
-	void __iomem *base;
 	int ret;
 
 	iores = dev_request_mem_resource(dev, 0);
 	if (IS_ERR(iores))
 		return PTR_ERR(iores);
-	base = IOMEM(iores->start);
 
 	sram = xzalloc(sizeof(*sram));
 
 	sram->cdev.name = basprintf("sram%d", cdev_find_free_index("sram"));
 
-	res = dev_get_resource(dev, IORESOURCE_MEM, 0);
-	if (IS_ERR(res))
-		return PTR_ERR(res);
-
-	sram->cdev.size = (unsigned long)resource_size(res);
+	sram->cdev.size = (unsigned long)resource_size(iores);
 	sram->cdev.ops = &memops;
 	sram->cdev.dev = dev;
 

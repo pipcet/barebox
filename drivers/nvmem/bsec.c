@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2018, STMicroelectronics - All Rights Reserved
  * Copyright (c) 2019 Ahmad Fatoum, Pengutronix
@@ -21,8 +21,10 @@
 #define BSEC_OTP_SERIAL	13
 
 struct bsec_priv {
+	struct device_d dev;
 	u32 svc_id;
 	struct regmap_config map_config;
+	int permanent_write_enable;
 };
 
 struct stm32_bsec_data {
@@ -59,13 +61,18 @@ static int stm32_bsec_read_shadow(void *ctx, unsigned reg, unsigned *val)
 	return bsec_smc(ctx, BSEC_SMC_READ_SHADOW, reg, 0, val);
 }
 
-static int stm32_bsec_reg_write_shadow(void *ctx, unsigned reg, unsigned val)
+static int stm32_bsec_reg_write(void *ctx, unsigned reg, unsigned val)
 {
-	return bsec_smc(ctx, BSEC_SMC_WRITE_SHADOW, reg, val, NULL);
+	struct bsec_priv *priv = ctx;
+
+	if (priv->permanent_write_enable)
+		return bsec_smc(ctx, BSEC_SMC_PROG_OTP, reg, val, NULL);
+	else
+		return bsec_smc(ctx, BSEC_SMC_WRITE_SHADOW, reg, val, NULL);
 }
 
 static struct regmap_bus stm32_bsec_regmap_bus = {
-	.reg_write = stm32_bsec_reg_write_shadow,
+	.reg_write = stm32_bsec_reg_write,
 	.reg_read = stm32_bsec_read_shadow,
 };
 
@@ -82,20 +89,27 @@ static void stm32_bsec_set_unique_machine_id(struct regmap *map)
 	machine_id_set_hashable(unique_id, sizeof(unique_id));
 }
 
-static int stm32_bsec_read_mac(struct regmap *map, int offset, u8 *mac)
+static int stm32_bsec_read_mac(struct bsec_priv *priv, int offset, u8 *mac)
 {
-	u8 res[8];
+	u32 val[2];
 	int ret;
 
-	ret = regmap_bulk_read(map, offset * 4, res, 8);
+	/* Some TF-A does not copy all of OTP into shadow registers, so make
+	 * sure we read the _real_ OTP bits here.
+	 */
+	ret = bsec_smc(priv, BSEC_SMC_READ_OTP, offset * 4, 0, &val[0]);
+	if (ret)
+		return ret;
+	ret = bsec_smc(priv, BSEC_SMC_READ_OTP, offset * 4 + 4, 0, &val[1]);
 	if (ret)
 		return ret;
 
-	memcpy(mac, res, ETH_ALEN);
+	memcpy(mac, val, ETH_ALEN);
 	return 0;
 }
 
-static void stm32_bsec_init_dt(struct device_d *dev, struct regmap *map)
+static void stm32_bsec_init_dt(struct bsec_priv *priv, struct device_d *dev,
+			       struct regmap *map)
 {
 	struct device_node *node = dev->device_node;
 	struct device_node *rnode;
@@ -118,7 +132,7 @@ static void stm32_bsec_init_dt(struct device_d *dev, struct regmap *map)
 	rnode = of_find_node_by_phandle(phandle);
 	offset = be32_to_cpup(prop++);
 
-	ret = stm32_bsec_read_mac(map, offset, mac);
+	ret = stm32_bsec_read_mac(priv, offset, mac);
 	if (ret) {
 		dev_warn(dev, "error setting MAC address: %s\n", strerror(-ret));
 		return;
@@ -143,6 +157,10 @@ static int stm32_bsec_probe(struct device_d *dev)
 
 	priv->svc_id = data->svc_id;
 
+	dev_set_name(&priv->dev, "bsec");
+	priv->dev.parent = dev;
+	register_device(&priv->dev);
+
 	priv->map_config.reg_bits = 32;
 	priv->map_config.val_bits = 32;
 	priv->map_config.reg_stride = 4;
@@ -152,6 +170,11 @@ static int stm32_bsec_probe(struct device_d *dev)
 	if (IS_ERR(map))
 		return PTR_ERR(map);
 
+	if (IS_ENABLED(CONFIG_STM32_BSEC_WRITE)) {
+		dev_add_param_bool(&priv->dev, "permanent_write_enable",
+				NULL, NULL, &priv->permanent_write_enable, NULL);
+	}
+
 	nvmem = nvmem_regmap_register(map, "stm32-bsec");
 	if (IS_ERR(nvmem))
 		return PTR_ERR(nvmem);
@@ -159,7 +182,7 @@ static int stm32_bsec_probe(struct device_d *dev)
 	if (IS_ENABLED(CONFIG_MACHINE_ID))
 		stm32_bsec_set_unique_machine_id(map);
 
-	stm32_bsec_init_dt(dev, map);
+	stm32_bsec_init_dt(priv, dev, map);
 
 	return 0;
 }

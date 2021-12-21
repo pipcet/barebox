@@ -115,11 +115,10 @@ static int backend_format_raw_verify(struct state_backend_format *format,
 
 	header = (struct backend_raw_header *)buf;
 	crc = crc32(0, header, sizeof(*header) - sizeof(uint32_t));
-	if (crc != header->header_crc) {
-		dev_err(backend_raw->dev, "Error, invalid header crc in raw format, calculated 0x%08x, found 0x%08x\n",
+	if (crc != header->header_crc)
+		return dev_err_state_init(backend_raw->dev, header->header_crc ? -EINVAL : -ENOMEDIUM,
+			"header crc in raw format, calculated 0x%08x, found 0x%08x\n",
 			crc, header->header_crc);
-		return -EINVAL;
-	}
 
 	if (magic && magic != header->magic) {
 		dev_err(backend_raw->dev, "Error, invalid magic in raw format 0x%08x, should be 0x%08x\n",
@@ -183,6 +182,7 @@ static int backend_format_raw_unpack(struct state_backend_format *format,
 	const struct backend_raw_header *header;
 	const void *data;
 	struct state_backend_format_raw *backend_raw = get_format_raw(format);
+	int ret = 0;
 
 	header = (const struct backend_raw_header *)buf;
 	data = buf + sizeof(*header);
@@ -191,12 +191,13 @@ static int backend_format_raw_unpack(struct state_backend_format *format,
 		if (sv->start + sv->size > header->data_len) {
 			dev_err(backend_raw->dev, "State variable ends behind valid data, %s\n",
 				sv->name);
+			ret = -ENOSPC;
 			continue;
 		}
 		memcpy(sv->raw, data + sv->start, sv->size);
 	}
 
-	return 0;
+	return ret;
 }
 
 static int backend_format_raw_pack(struct state_backend_format *format,

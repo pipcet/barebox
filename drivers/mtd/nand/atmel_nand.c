@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  *  Copyright (C) 2003 Rick Bronson
  *
@@ -14,12 +15,6 @@
  *     Derived from Das U-Boot source code
  *     		(u-boot-1.1.5/board/atmel/at91sam9263ek/nand.c)
  *     (C) Copyright 2006 ATMEL Rousset, Lacressonniere Nicolas
- *
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
  */
 
 #include <common.h>
@@ -858,10 +853,6 @@ static int __init atmel_pmecc_nand_init_params(struct device_d *dev,
 	if (IS_ERR(iores))
 		return PTR_ERR(iores);
 	host->ecc = IOMEM(iores->start);
-	if (IS_ERR(host->ecc)) {
-		dev_err(host->dev, "ioremap failed\n");
-		return -EIO;
-	}
 
 	iores = dev_request_mem_resource(dev, 2);
 	if (IS_ERR(iores)) {
@@ -1215,10 +1206,6 @@ static int atmel_hw_nand_init_params(struct device_d *dev,
 	if (IS_ERR(iores))
 		return PTR_ERR(iores);
 	host->ecc = IOMEM(iores->start);
-	if (IS_ERR(host->ecc)) {
-		dev_err(host->dev, "ioremap failed\n");
-		return -EIO;
-	}
 
 	/* ECC is calculated for the whole page (1 step) */
 	nand_chip->ecc.size = mtd->writesize;

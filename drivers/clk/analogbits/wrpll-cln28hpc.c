@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2018-2019 SiFive, Inc.
  * Wesley Terpstra
@@ -23,7 +23,7 @@
 
 #include <linux/kernel.h>
 #include <stdio.h>
-#include <printk.h>
+#include <linux/printk.h>
 #include <linux/bug.h>
 #include <linux/err.h>
 #include <linux/log2.h>

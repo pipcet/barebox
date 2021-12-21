@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 obj-$(CONFIG_I2C_AT91)		+= i2c-at91.o
 obj-$(CONFIG_I2C_APPLE)		+= i2c-apple.o
 obj-$(CONFIG_I2C_GPIO)		+= i2c-gpio.o

@@ -1,17 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * imx-iomux-v3.c - i.MX iomux-v3 pinctrl support
  *
  * Copyright (c) 2013 Sascha Hauer <s.hauer@pengutronix.de>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
  */
 
 #include <common.h>
@@ -250,6 +241,8 @@ static __maybe_unused struct of_device_id imx_iomux_v3_dt_ids[] = {
 		.data = &imx_iomux_imx7_lpsr_data,
 	}, {
 		.compatible = "fsl,imx8mm-iomuxc",
+	}, {
+		.compatible = "fsl,imx8mn-iomuxc",
 	}, {
 		.compatible = "fsl,imx8mp-iomuxc",
 	}, {

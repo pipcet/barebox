@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * I2C multiplexer
  *
@@ -32,10 +33,6 @@
  *	i2c-virtual_cb.c from Brian Kuschak <bkuschak@yahoo.com>
  * and
  *	pca9540.c from Jean Delvare <jdelvare@suse.de>.
- *
- * This file is licensed under the terms of the GNU General Public
- * License version 2. This program is licensed "as is" without any
- * warranty of any kind, whether express or implied.
  */
 
 #include <common.h>
@@ -210,10 +207,8 @@ static int pca954x_probe(struct device_d *dev)
 	 * that the mux is in fact present. This also
 	 * initializes the mux to disconnected state.
 	 */
-	if (i2c_smbus_write_byte(client, 0) < 0) {
-		dev_warn(&client->dev, "probe failed\n");
+	if (i2c_smbus_write_byte(client, 0) < 0)
 		goto exit_free;
-	}
 
 	ret = dev_get_drvdata(dev, (const void **)&tmp);
 	data->type = tmp;

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 #define pr_fmt(fmt)	"gpiolib: " fmt
 
 #include <init.h>

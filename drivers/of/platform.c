@@ -1,18 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * platform.c - bus/device related devicetree functions
  *
  * Copyright (c) 2012 Sascha Hauer <s.hauer@pengutronix.de>, Pengutronix
  *
  * based on Linux devicetree support
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 #include <common.h>
 #include <deep-probe.h>
@@ -373,10 +365,13 @@ int of_platform_populate(struct device_node *root,
 }
 EXPORT_SYMBOL_GPL(of_platform_populate);
 
-static struct device_d *of_device_create_on_demand(struct device_node *np)
+struct device_d *of_device_create_on_demand(struct device_node *np)
 {
 	struct device_node *parent;
 	struct device_d *parent_dev, *dev;
+
+	if (!deep_probe_is_supported())
+		return NULL;
 
 	parent = of_get_parent(np);
 	if (!parent)

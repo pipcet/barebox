@@ -1,9 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2016 Pengutronix, Steffen Trumtrar <kernel@pengutronix.de>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
  *
  * derived from Linux kernel drivers/char/hw_random/core.c
  */
@@ -92,6 +89,12 @@ static int hwrng_register_cdev(struct hwrng *rng)
 	return devfs_create(&rng->cdev);
 }
 
+static void hwrng_unregister_cdev(struct hwrng *rng)
+{
+	devfs_remove(&rng->cdev);
+	free(rng->cdev.name);
+}
+
 struct hwrng *hwrng_get_first(void)
 {
 	if (list_empty(&hwrngs))
@@ -121,4 +124,10 @@ int hwrng_register(struct device_d *dev, struct hwrng *rng)
 		free(rng->buf);
 
 	return err;
+}
+
+void hwrng_unregister(struct hwrng *rng)
+{
+	hwrng_unregister_cdev(rng);
+	free(rng->buf);
 }

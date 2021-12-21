@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2020 SiFive, Inc.
  * Copyright (C) 2020 Zong Li
@@ -8,7 +8,7 @@
 #include <linux/list.h>
 #include <linux/clkdev.h>
 #include <linux/overflow.h>
-#include <printk.h>
+#include <linux/printk.h>
 #include <clock.h>
 #include <io.h>
 #include <of.h>

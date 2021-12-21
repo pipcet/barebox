@@ -1,18 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (C) 2013, 2014 Antony Pavlov <antonynpavlov@gmail.com>
  *
  * This file is part of barebox.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
  */
 
 #include <common.h>
@@ -55,7 +45,7 @@ static inline void ath79_spi_wr(struct ath79_spi *sp, u32 val, int reg)
 	__raw_writel(val, sp->regs + reg);
 }
 
-static inline void setbits(struct ath79_spi *sp, int bits, int on)
+static inline void ath79_spi_setbits(struct ath79_spi *sp, int bits, int on)
 {
 	/*
 	 * We are the only user of SCSPTR so no locking is required.
@@ -82,14 +72,14 @@ static inline void setsck(struct spi_device *spi, int on)
 {
 	struct ath79_spi *sc = ath79_spidev_to_sp(spi);
 
-	setbits(sc, AR71XX_SPI_IOC_CLK, on);
+	ath79_spi_setbits(sc, AR71XX_SPI_IOC_CLK, on);
 }
 
 static inline void setmosi(struct spi_device *spi, int on)
 {
 	struct ath79_spi *sc = ath79_spidev_to_sp(spi);
 
-	setbits(sc, AR71XX_SPI_IOC_DO, on);
+	ath79_spi_setbits(sc, AR71XX_SPI_IOC_DO, on);
 }
 
 static inline u32 getmiso(struct spi_device *spi)

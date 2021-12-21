@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 menuconfig NET_USB
 	depends on USB_HOST
 	bool "USB network support"
@@ -22,5 +23,12 @@ config USB_NET_AX88179_178A
 config NET_USB_SMSC95XX
 	select PHYLIB
 	bool "SMSC95xx"
+
+config NET_USB_RTL8152
+	bool "Realtek RTL8152B/RTL8153 support"
+	help
+	  Say Y here if you would like to support Realtek RTL8152B/RTL8153 base
+	  USB Ethernet Devices. This driver also supports compatible devices
+	  from Samsung, Lenovo, TP-LINK and Nvidia.
 
 endif

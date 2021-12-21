@@ -1,17 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * barebox regulator support
  *
  * Copyright (c) 2014 Sascha Hauer <s.hauer@pengutronix.de>, Pengutronix
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
  */
 #include <common.h>
 #include <regulator.h>
@@ -197,7 +188,7 @@ static struct regulator_internal *of_regulator_get(struct device_d *dev, const c
 {
 	char *propname;
 	struct regulator_internal *ri;
-	struct device_node *node;
+	struct device_node *node, *node_parent;
 	int ret;
 
 	propname = basprintf("%s-supply", supply);
@@ -231,8 +222,24 @@ static struct regulator_internal *of_regulator_get(struct device_d *dev, const c
 	}
 
 	ret = of_device_ensure_probed(node);
-	if (ret)
+	if (ret) {
+		/* 
+		 * If "barebox,allow-dummy-supply" property is set for regulator
+		 * provider allow use of dummy regulator (NULL is returned).
+		 * Check regulator node and its parent if this setting is set
+		 * PMIC wide.
+		 */
+		node_parent = of_get_parent(node);
+		if (of_get_property(node, "barebox,allow-dummy-supply", NULL) ||
+		    of_get_property(node_parent, "barebox,allow-dummy-supply", NULL)) {
+			dev_dbg(dev, "Allow use of dummy regulator for " \
+				"%s-supply\n", supply);
+			ri = NULL;
+			goto out;
+		}
+
 		return ERR_PTR(ret);
+	}
 
 	list_for_each_entry(ri, &regulator_list, list) {
 		if (ri->node == node) {
@@ -573,7 +580,7 @@ int regulator_get_voltage(struct regulator *regulator)
 
 	return ret;
 }
-EXPORT_SYMBOL_GPL(regulator_get_voltage_rdev);
+EXPORT_SYMBOL_GPL(regulator_get_voltage);
 
 static void regulator_print_one(struct regulator_internal *ri)
 {

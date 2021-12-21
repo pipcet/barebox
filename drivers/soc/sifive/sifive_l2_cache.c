@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * SiFive L2 cache controller Driver
  *
@@ -9,7 +9,7 @@
 #define pr_fmt(fmt) "sifive-l2: " fmt
 
 #include <io.h>
-#include <printk.h>
+#include <linux/printk.h>
 #include <stdio.h>
 #include <driver.h>
 #include <init.h>

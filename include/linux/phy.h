@@ -1,15 +1,10 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
  * Copyright (c) 2009-2012 Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
  *
  * Author: Andy Fleming
  *
  * Copyright (c) 2004 Freescale Semiconductor, Inc.
- *
- * This program is free software; you can redistribute  it and/or modify it
- * under  the terms of  the GNU General  Public License as published by the
- * Free Software Foundation;  either version 2 of the  License, or (at your
- * option) any later version.
- *
  */
 
 #ifndef __PHY_H
@@ -212,6 +207,7 @@ struct phy_device {
  * phy_id_mask: Defines the important bits of the phy_id
  * features: A list of features (speed, duplex, etc) supported
  *   by this PHY
+ * @driver_data: Static driver data
  *
  * The drivers must implement config_aneg and read_status.  All
  * other functions are optional. Note that none of these
@@ -225,6 +221,7 @@ struct phy_driver {
 	u32 phy_id;
 	unsigned int phy_id_mask;
 	u32 features;
+	const void *driver_data;
 
 	/*
 	 * Called to initialize the PHY,

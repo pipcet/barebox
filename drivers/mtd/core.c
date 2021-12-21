@@ -1,16 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * (C) Copyright 2005
  * 2N Telekomunikace, a.s. <www.2n.cz>
  * Ladislav Michl <michl@2n.cz>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 #include <common.h>
 #include <linux/mtd/nand.h>
@@ -377,7 +369,7 @@ int mtd_block_markgood(struct mtd_info *mtd, loff_t ofs)
 }
 
 int mtd_read(struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen,
-             u_char *buf)
+	     u_char *buf)
 {
 	struct mtd_oob_ops ops = {
 		.len = len,
@@ -420,23 +412,23 @@ int mtd_write_oob(struct mtd_info *mtd, loff_t to,
 }
 
 int mtd_write(struct mtd_info *mtd, loff_t to, size_t len, size_t *retlen,
-              const u_char *buf)
+	      const u_char *buf)
 {
-        struct mtd_oob_ops ops = {
-                .len = len,
-                .datbuf = (u8 *)buf,
-        };
-        int ret;
+	struct mtd_oob_ops ops = {
+		.len = len,
+		.datbuf = (u8 *)buf,
+	};
+	int ret;
 
 	if (to < 0 || to >= mtd->size || len > mtd->size - to)
 		return -EINVAL;
 	if (!len)
 		return 0;
 
-        ret = mtd_write_oob(mtd, to, &ops);
-        *retlen = ops.retlen;
+	ret = mtd_write_oob(mtd, to, &ops);
+	*retlen = ops.retlen;
 
-        return ret;
+	return ret;
 }
 
 int mtd_erase(struct mtd_info *mtd, struct erase_info *instr)
@@ -757,7 +749,7 @@ err:
 	return ret;
 }
 
-int del_mtd_device (struct mtd_info *mtd)
+int del_mtd_device(struct mtd_info *mtd)
 {
 	struct mtddev_hook *hook;
 

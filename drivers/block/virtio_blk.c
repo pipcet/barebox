@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0+
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (C) 2018, Tuomas Tynkkynen <tuomas.tynkkynen@iki.fi>
  * Copyright (C) 2018, Bin Meng <bmeng.cn@gmail.com>
@@ -95,6 +95,7 @@ static int virtio_blk_probe(struct virtio_device *vdev)
 		return ret;
 
 	priv->vdev = vdev;
+	vdev->priv = priv;
 
 	devnum = cdev_find_free_index("virtioblk");
 	priv->blk.cdev.name = xasprintf("virtioblk%d", devnum);
@@ -115,8 +116,13 @@ static int virtio_blk_probe(struct virtio_device *vdev)
 
 static void virtio_blk_remove(struct virtio_device *vdev)
 {
+	struct virtio_blk_priv *priv = vdev->priv;
+
 	vdev->config->reset(vdev);
+	blockdevice_unregister(&priv->blk);
 	vdev->config->del_vqs(vdev);
+
+	free(priv);
 }
 
 static const struct virtio_device_id id_table[] = {

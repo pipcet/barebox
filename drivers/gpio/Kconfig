@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 config GPIOLIB
 	bool
 	select GENERIC_GPIO
@@ -20,6 +21,20 @@ config GPIO_74164
 	  Driver for 74x164 compatible serial-in/parallel-out 8-outputs
 	  shift registers. This driver can be used to provide access
 	  to more gpio outputs.
+
+config GPIO_74XX_MMIO
+	tristate "GPIO driver for 74xx-ICs with MMIO access"
+	depends on OFDEVICE
+	select GPIO_GENERIC
+	help
+	  Say yes here to support GPIO functionality for 74xx-compatible ICs
+	  with MMIO access. Compatible models include:
+	    1 bit:	741G125 (Input), 741G74 (Output)
+	    2 bits:	742G125 (Input), 7474 (Output)
+	    4 bits:	74125 (Input), 74175 (Output)
+	    6 bits:	74365 (Input), 74174 (Output)
+	    8 bits:	74244 (Input), 74273 (Output)
+	    16 bits:	741624 (Input), 7416374 (Output)
 
 config GPIO_CLPS711X
 	bool "GPIO support for CLPS711X"
@@ -182,6 +197,13 @@ config GPIO_STARFIVE
 config GPIO_LIBFTDI1
 	bool "libftdi1 driver"
 	depends on SANDBOX
+
+config GPIO_ZYNQ
+	tristate "Xilinx Zynq GPIO support"
+	depends on ARCH_ZYNQ || ARCH_ZYNQMP || CROSS_COMPILE
+	depends on OFDEVICE
+	help
+	  Say yes here to support Xilinx Zynq GPIO controller.
 
 endmenu
 

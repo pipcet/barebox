@@ -1,8 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright 2011 Intel Corporation; author Matt Fleming
  * Copyright (c) 2017 Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
- *
- * GPL v2
  */
 
 #include <common.h>
@@ -13,7 +12,7 @@
 #include <errno.h>
 #include <gui/graphic_utils.h>
 #include <efi.h>
-#include <efi/efi.h>
+#include <efi/efi-payload.h>
 #include <efi/efi-device.h>
 
 #define PIXEL_RGB_RESERVED_8BIT_PER_COLOR		0
