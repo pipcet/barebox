@@ -116,7 +116,7 @@ static int mbox_probe(struct device_d *dev)
 
 	/* EP0_SEND_HELLO */
 	subtype = msg[0] & 0xffffffff;
-	writeq(0x0020000100000000 | subtype , priv->base + REG_A2I_MSG0);
+	writeq(0x00200001000b000b, priv->base + REG_A2I_MSG0);
 	writeq(0x0000000000000000, priv->base + REG_A2I_MSG1);
 
 wait_epmap:
