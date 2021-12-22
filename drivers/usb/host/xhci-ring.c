@@ -32,8 +32,8 @@
  *
  * @param ctrl	Host controller data structure
  * @param ring	pointer to the ring
- * @param seg	poniter to the segment to which TRB belongs
- * @param trb	poniter to the ring trb
+ * @param seg	pointer to the segment to which TRB belongs
+ * @param trb	pointer to the ring trb
  * @return 1 if this TRB a link TRB else 0
  */
 static int last_trb(struct xhci_ctrl *ctrl, struct xhci_ring *ring,
@@ -51,8 +51,8 @@ static int last_trb(struct xhci_ctrl *ctrl, struct xhci_ring *ring,
  *
  * @param ctrl	Host controller data structure
  * @param ring	pointer to the ring
- * @param seg	poniter to the segment to which TRB belongs
- * @param trb	poniter to the ring trb
+ * @param seg	pointer to the segment to which TRB belongs
+ * @param trb	pointer to the ring trb
  * @return 1 if this TRB is the last TRB on the last segment else 0
  */
 static bool last_trb_on_last_seg(struct xhci_ctrl *ctrl,

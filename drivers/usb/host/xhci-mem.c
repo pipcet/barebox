@@ -51,7 +51,7 @@ void xhci_flush_cache(uintptr_t addr, u32 len)
 /**
  * invalidates the address passed till the length
  *
- * @param addr	pointer to memory region to be invalidates
+ * @param addr	pointer to memory region to be invalidated
  * @param len	the length of the cache line to be invalidated
  * @return none
  */
@@ -258,7 +258,7 @@ static void xhci_link_segments(struct xhci_segment *prev,
 /**
  * Initialises the Ring's enqueue,dequeue,enq_seg pointers
  *
- * @param ring	pointer to the RING to be intialised
+ * @param ring	pointer to the RING to be initialised
  * @return none
  */
 static void xhci_initialize_ring_info(struct xhci_ring *ring)
@@ -526,7 +526,7 @@ int xhci_mem_init(struct xhci_ctrl *ctrl, struct xhci_hccr *hccr,
 	/* DCBAA initialization */
 	ctrl->dcbaa = xhci_malloc(ctrl, sizeof(*ctrl->dcbaa));
 	if (!ctrl->dcbaa) {
-		dev_err(ctrl->dev, "unable to allocate DCBA\n");
+		dev_err(ctrl->dev, "unable to allocate DCBAA\n");
 		return -ENOMEM;
 	}
 
@@ -555,7 +555,7 @@ int xhci_mem_init(struct xhci_ctrl *ctrl, struct xhci_hccr *hccr,
 	val &= RTSOFF_MASK;
 	ctrl->run_regs = (struct xhci_run_regs *)((char *)hccr + val);
 
-	/* writting the address of ir_set structure */
+	/* writing the address of ir_set structure */
 	ctrl->ir_set = &ctrl->run_regs->ir_set[0];
 
 	/* Event ring does not maintain link TRB */

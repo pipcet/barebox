@@ -1053,7 +1053,7 @@ static int xhci_submit_root(struct usb_device *udev, unsigned long pipe,
 		goto unknown;
 	}
 
-	dev_dbg(&udev->dev, "scrlen = %d\n req->length = %d\n",
+	dev_dbg(&udev->dev, "srclen = %d\n req->length = %d\n",
 		srclen, le16_to_cpu(req->length));
 
 	len = min(srclen, (int)le16_to_cpu(req->length));
