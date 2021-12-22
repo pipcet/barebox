@@ -26,7 +26,7 @@
 #include <usb/usb_defs.h>
 #include <asm/byteorder.h>
 
-/* Everything is aribtrary */
+/* Everything is arbitrary */
 #define USB_ALTSETTINGALLOC		4
 #define USB_MAXALTSETTING		128	/* Hard limit */
 
