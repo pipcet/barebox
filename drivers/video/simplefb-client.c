@@ -119,6 +119,7 @@ static int simplefb_probe(struct device_d *dev)
 	info->screen_base = (void *)mem->start;
 	info->screen_size = resource_size(mem);
 
+	memset(info->screen_base, 0, info->screen_size);
 
 	info->fbops = &simplefb_ops;
 
