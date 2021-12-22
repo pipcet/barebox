@@ -79,6 +79,7 @@ static int dwc3_get_dr_mode(struct dwc3 *dwc)
 
 		dwc->dr_mode = mode;
 	}
+	dwc->dr_mode = USB_DR_MODE_HOST;
 
 	return 0;
 }
