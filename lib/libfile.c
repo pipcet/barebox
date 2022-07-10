@@ -76,6 +76,31 @@ int write_full(int fd, const void *buf, size_t size)
 EXPORT_SYMBOL(write_full);
 
 /*
+ * pread_full - read to filedescriptor at offset
+ *
+ * Like pread, but this function only returns less bytes than
+ * requested when the end of file is reached.
+ */
+int pread_full(int fd, void *buf, size_t size, loff_t offset)
+{
+	size_t insize = size;
+	int now;
+
+	while (size) {
+		now = pread(fd, buf, size, offset);
+		if (now == 0)
+			break;
+		if (now < 0)
+			return now;
+		size -= now;
+		buf += now;
+	}
+
+	return insize - size;
+}
+EXPORT_SYMBOL(pread_full);
+
+/*
  * read_full - read from filedescriptor
  *
  * Like read, but this function only returns less bytes than
@@ -137,7 +162,6 @@ char *read_file_line(const char *fmt, ...)
 	va_list args;
 	char *filename;
 	char *buf, *line = NULL;
-	size_t size;
 	int ret;
 	struct stat s;
 
@@ -152,7 +176,7 @@ char *read_file_line(const char *fmt, ...)
 	if (s.st_size > 1024)
 		goto out;
 
-	buf = read_file(filename, &size);
+	buf = read_file(filename, NULL);
 	if (!buf)
 		goto out;
 

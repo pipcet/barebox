@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <stdint.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -15,7 +14,6 @@
 #include <stdarg.h>
 #include <linux/err.h>
 #include <linux/kernel.h>
-#include <sys/mman.h>
 
 #include "common.h"
 #include "common.c"
@@ -53,6 +51,43 @@ static inline void read_file_2_free(void *buf)
 static unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base)
 {
 	return strtoul(cp, endp, base);
+}
+
+static int imd_read_file(const char *filename, size_t *size, void **outbuf,
+			 bool allow_mmap)
+{
+	void *buf = MAP_FAILED;
+	int fd, ret;
+	size_t fsize;
+
+	fd = open(filename, O_RDONLY);
+	if (fd < 0) {
+		fprintf(stderr, "Cannot open %s: %s\n", filename, strerror(errno));
+		return -errno;
+	}
+
+	fsize = lseek(fd, 0, SEEK_END);
+	if (fsize == -1) {
+		fprintf(stderr, "Cannot get size %s: %s\n", filename, strerror(errno));
+		ret = -errno;
+		goto close;
+	}
+
+	if (allow_mmap)
+		buf = mmap(NULL, fsize, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+
+	if (buf == MAP_FAILED) {
+		close(fd);
+		return read_file_2(filename, size, outbuf, 0x100000);
+	}
+
+	*outbuf = buf;
+	*size = fsize;
+
+	return 0;
+close:
+	close(fd);
+	return ret;
 }
 
 #include "../include/xfuncs.h"

@@ -232,6 +232,9 @@ int clk_set_parent(struct clk *clk, struct clk *newparent)
 	int i, ret;
 	struct clk *curparent = clk_get_parent(clk);
 
+	if (!clk || !newparent)
+		return 0;
+
 	if (IS_ERR(clk))
 		return PTR_ERR(clk);
 	if (IS_ERR(newparent))
@@ -287,7 +290,7 @@ struct clk *clk_get_parent(struct clk *clk)
 	struct clk_hw *hw;
 	int idx;
 
-	if (IS_ERR(clk))
+	if (IS_ERR_OR_NULL(clk))
 		return clk;
 
 	if (!clk->num_parents)
@@ -561,6 +564,7 @@ struct of_clk_provider {
 
 	struct device_node *node;
 	struct clk *(*get)(struct of_phandle_args *clkspec, void *data);
+	struct clk_hw *(*get_hw)(struct of_phandle_args *clkspec, void *data);
 	void *data;
 };
 
@@ -577,6 +581,12 @@ struct clk *of_clk_src_simple_get(struct of_phandle_args *clkspec,
 }
 EXPORT_SYMBOL_GPL(of_clk_src_simple_get);
 
+struct clk_hw *of_clk_hw_simple_get(struct of_phandle_args *clkspec, void *data)
+{
+	return data;
+}
+EXPORT_SYMBOL_GPL(of_clk_hw_simple_get);
+
 struct clk *of_clk_src_onecell_get(struct of_phandle_args *clkspec, void *data)
 {
 	struct clk_onecell_data *clk_data = data;
@@ -591,14 +601,26 @@ struct clk *of_clk_src_onecell_get(struct of_phandle_args *clkspec, void *data)
 }
 EXPORT_SYMBOL_GPL(of_clk_src_onecell_get);
 
-/**
- * of_clk_add_provider() - Register a clock provider for a node
- * @np: Device node pointer associated with clock provider
- * @clk_src_get: callback for decoding clock
- * @data: context pointer for @clk_src_get callback.
- */
-int of_clk_add_provider(struct device_node *np,
+struct clk_hw *
+of_clk_hw_onecell_get(struct of_phandle_args *clkspec, void *data)
+{
+	struct clk_hw_onecell_data *hw_data = data;
+	unsigned int idx = clkspec->args[0];
+
+	if (idx >= hw_data->num) {
+		pr_err("%s: invalid index %u\n", __func__, idx);
+		return ERR_PTR(-EINVAL);
+	}
+
+	return hw_data->hws[idx];
+}
+EXPORT_SYMBOL_GPL(of_clk_hw_onecell_get);
+
+
+static int __of_clk_add_provider(struct device_node *np,
 			struct clk *(*clk_src_get)(struct of_phandle_args *clkspec,
+						   void *data),
+			struct clk_hw *(*clk_hw_src_get)(struct of_phandle_args *clkspec,
 						   void *data),
 			void *data)
 {
@@ -611,6 +633,7 @@ int of_clk_add_provider(struct device_node *np,
 	cp->node = np;
 	cp->data = data;
 	cp->get = clk_src_get;
+	cp->get_hw = clk_hw_src_get;
 
 	list_add(&cp->link, &of_clk_providers);
 	pr_debug("Added clock from %s\n", np ? np->full_name : "<none>");
@@ -619,7 +642,30 @@ int of_clk_add_provider(struct device_node *np,
 
 	return 0;
 }
+
+/**
+ * of_clk_add_provider() - Register a clock provider for a node
+ * @np: Device node pointer associated with clock provider
+ * @clk_src_get: callback for decoding clock
+ * @data: context pointer for @clk_src_get callback.
+ */
+int of_clk_add_provider(struct device_node *np,
+			struct clk *(*clk_src_get)(struct of_phandle_args *clkspec,
+						   void *data),
+			void *data)
+{
+	return __of_clk_add_provider(np, clk_src_get, NULL, data);
+}
 EXPORT_SYMBOL_GPL(of_clk_add_provider);
+
+int of_clk_add_hw_provider(struct device_node *np,
+			struct clk_hw *(*clk_hw_src_get)(struct of_phandle_args *clkspec,
+							 void *data),
+			void *data)
+{
+	return __of_clk_add_provider(np, NULL, clk_hw_src_get, data);
+}
+EXPORT_SYMBOL_GPL(of_clk_add_hw_provider);
 
 /**
  * of_clk_del_provider() - Remove a previously registered clock provider
@@ -643,16 +689,18 @@ struct clk *of_clk_get_from_provider(struct of_phandle_args *clkspec)
 {
 	struct of_clk_provider *provider;
 	struct clk *clk = ERR_PTR(-EPROBE_DEFER);
-	int ret;
 
-	ret = of_device_ensure_probed(clkspec->np);
-	if (ret)
-		return ERR_PTR(ret);
+	/* Ignore error, as CLK_OF_DECLARE clocks have no proper driver. */
+	of_device_ensure_probed(clkspec->np);
 
 	/* Check if we have such a provider in our array */
 	list_for_each_entry(provider, &of_clk_providers, link) {
-		if (provider->node == clkspec->np)
-			clk = provider->get(clkspec, provider->data);
+		if (provider->node == clkspec->np) {
+			if (provider->get)
+				clk = provider->get(clkspec, provider->data);
+			else
+				clk = clk_hw_to_clk(provider->get_hw(clkspec, provider->data));
+		}
 		if (!IS_ERR(clk))
 			break;
 	}
@@ -845,15 +893,9 @@ int of_clk_init(struct device_node *root, const struct of_device_id *matches)
 
 			struct device_node *np = clk_provider->np;
 			if (force || parent_ready(np)) {
-				struct device_d *dev;
 
 				of_pinctrl_select_state_default(np);
-
-				dev = of_device_create_on_demand(np);
-
-				if (clk_provider->clk_init_cb(np) == 0 && dev)
-					of_platform_device_dummy_drv(dev);
-
+				clk_provider->clk_init_cb(np);
 				of_clk_set_defaults(np, true);
 
 				list_del(&clk_provider->node);

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 config KVX
 	bool
 	select 64BIT
@@ -10,6 +12,7 @@ config KVX
 	select COMMON_CLK_OF_PROVIDER
 	select ELF
 	select FLEXIBLE_BOOTARGS
+	select FITIMAGE
 	select GENERIC_FIND_NEXT_BIT
 	select HAS_ARCH_SJLJ
 	select HAS_CACHE
@@ -34,13 +37,6 @@ config 64BIT
 config ARCH_TEXT_BASE
 	hex
 	default 0x110000000
-
-menu "Kalray specific"
-
-config ARCHINFO
-	string
-	default "coolidge"
-endmenu
 
 menu "Board configuration"
 

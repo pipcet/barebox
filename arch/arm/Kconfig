@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 config ARM
 	bool
 	select HAS_KALLSYMS
@@ -26,6 +28,12 @@ config TEXT_BASE
 	default 0x0
 
 menu "System Type"
+
+config ARCH_STM32
+	bool
+	help
+	  Selected by both STM32 MCUs and MPUs to restrict driver
+	  visibility.
 
 choice
 	prompt "ARM system type"
@@ -68,15 +76,21 @@ config ARCH_BCM283X
 	select OFTREE
 	select OFDEVICE
 	select HAVE_PBL_MULTI_IMAGES
+	select CPU_SUPPORTS_32BIT_KERNEL
+	select CPU_SUPPORTS_64BIT_KERNEL
 
 config ARCH_CLPS711X
 	bool "Cirrus Logic EP711x/EP721x/EP731x"
 	select CLKDEV_LOOKUP
 	select CLOCKSOURCE_CLPS711X
 	select COMMON_CLK
+	select COMMON_CLK_OF_PROVIDER
 	select CPU_32v4T
 	select GPIOLIB
+	select HAS_DEBUG_LL
+	select HAVE_PBL_MULTI_IMAGES
 	select MFD_SYSCON
+	select RELOCATABLE
 
 config ARCH_DAVINCI
 	bool "TI Davinci"
@@ -199,6 +213,7 @@ config ARCH_S3C64xx
 
 config ARCH_STM32MP
 	bool "STMicroelectronics STM32MP"
+	select ARCH_STM32
 	select CPU_V7
 	select HAVE_PBL_MULTI_IMAGES
 	select CLKDEV_LOOKUP
@@ -279,7 +294,7 @@ config ARCH_ZYNQMP
 	select OFDEVICE
 	select OFTREE
 	select RELOCATABLE
-	select SYS_SUPPORTS_64BIT_KERNEL
+	select CPU_SUPPORTS_64BIT_KERNEL
 	select HAS_MACB
 
 config ARCH_ARM64_VIRT
@@ -289,7 +304,7 @@ config ARCH_ARM64_VIRT
 	select OFDEVICE
 	select OFTREE
 	select RELOCATABLE
-	select SYS_SUPPORTS_64BIT_KERNEL
+	select CPU_SUPPORTS_64BIT_KERNEL
 	select ARM_AMBA
 	select BOARD_ARM_VIRT
 	select HW_HAS_PCI
@@ -401,13 +416,13 @@ choice
 
 config 32BIT
 	bool "32-bit barebox"
-	depends on CPU_SUPPORTS_32BIT_KERNEL && SYS_SUPPORTS_32BIT_KERNEL
+	depends on CPU_SUPPORTS_32BIT_KERNEL
 	help
 	  Select this option if you want to build a 32-bit barebox.
 
 config 64BIT
 	bool "64-bit barebox"
-	depends on CPU_SUPPORTS_64BIT_KERNEL && SYS_SUPPORTS_64BIT_KERNEL
+	depends on CPU_SUPPORTS_64BIT_KERNEL
 	select ARCH_DMA_ADDR_T_64BIT
 	help
 	  Select this option if you want to build a 64-bit barebox.

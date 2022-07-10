@@ -45,6 +45,7 @@ static const struct filetype_str filetype_str[] = {
 	[filetype_mbr] = { "MBR sector", "mbr" },
 	[filetype_bmp] = { "BMP image", "bmp" },
 	[filetype_png] = { "PNG image", "png" },
+	[filetype_qoi] = { "QOI image", "qoi" },
 	[filetype_ext] = { "EXT filesystem", "ext" },
 	[filetype_gpt] = { "GUID Partition Table", "gpt" },
 	[filetype_ubifs] = { "UBIFS image", "ubifs" },
@@ -70,10 +71,12 @@ static const struct filetype_str filetype_str[] = {
 	[filetype_layerscape_qspi_image] = { "Layerscape QSPI image", "layerscape-qspi-PBL" },
 	[filetype_ubootvar] = { "U-Boot environmemnt variable data",
 				"ubootvar" },
-	[filetype_stm32_image_v1] = { "STM32 image (v1)", "stm32-image-v1" },
+	[filetype_stm32_image_fsbl_v1] = { "STM32MP FSBL image (v1)", "stm32-fsbl-v1" },
+	[filetype_stm32_image_ssbl_v1] = { "STM32MP SSBL image (v1)", "stm32-ssbl-v1" },
 	[filetype_zynq_image] = { "Zynq image", "zynq-image" },
 	[filetype_mxs_sd_image] = { "i.MX23/28 SD card image", "mxs-sd-image" },
 	[filetype_rockchip_rkns_image] = { "Rockchip boot image", "rk-image" },
+	[filetype_fip] = { "TF-A Firmware Image Package", "fip" },
 };
 
 const char *file_type_to_string(enum filetype f)
@@ -300,6 +303,8 @@ enum filetype file_detect_type(const void *_buf, size_t bufsize)
 		return filetype_aimage;
 	if (buf64[0] == le64_to_cpu(0x0a1a0a0d474e5089ull))
 		return filetype_png;
+	if (strncmp(buf8, "qoif", 4) == 0)
+		return filetype_qoi;
 	if (is_barebox_mips_head(_buf))
 		return filetype_mips_barebox;
 	if (buf[0] == be32_to_cpu(0x534F4659))
@@ -312,6 +317,9 @@ enum filetype file_detect_type(const void *_buf, size_t bufsize)
 		return filetype_riscv_barebox_image;
 	if (strncmp(buf8, "RKNS", 4) == 0)
 		return filetype_rockchip_rkns_image;
+	if (le32_to_cpu(buf[0]) == le32_to_cpu(0xaa640001))
+		return filetype_fip;
+
 	if ((buf8[0] == 0x5a || buf8[0] == 0x69 || buf8[0] == 0x78 ||
 	     buf8[0] == 0x8b || buf8[0] == 0x9c) &&
 	    buf8[0x1] == 0 && buf8[0x2] == 0 && buf8[0x3] == 0 &&
@@ -365,8 +373,14 @@ enum filetype file_detect_type(const void *_buf, size_t bufsize)
 		return filetype_unknown;
 
 	if (strncmp(buf8, "STM\x32", 4) == 0) {
-		if (buf8[74] == 0x01)
-			return filetype_stm32_image_v1;
+		if (buf8[74] == 0x01) {
+			switch(le32_to_cpu(buf[63])) {
+			case 0x00000000:
+				return filetype_stm32_image_ssbl_v1;
+			case 0x10000000:
+				return filetype_stm32_image_fsbl_v1;
+			}
+		}
 	}
 
 	if (bufsize < 512)
@@ -438,7 +452,7 @@ enum filetype cdev_detect_type(const char *name)
 	struct cdev *cdev;
 	void *buf;
 
-	cdev = cdev_open(name, O_RDONLY);
+	cdev = cdev_open_by_name(name, O_RDONLY);
 	if (!cdev)
 		return type;
 
@@ -470,6 +484,8 @@ bool filetype_is_barebox_image(enum filetype ft)
 	case filetype_ch_image_be:
 	case filetype_layerscape_image:
 	case filetype_layerscape_qspi_image:
+	case filetype_stm32_image_fsbl_v1:
+	case filetype_fip:
 		return true;
 	default:
 		return false;

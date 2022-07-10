@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 /dts-v1/;
 /plugin/;
 
@@ -35,15 +37,20 @@
 			};
 		};
 	};
+
 	fragment@1 {
-		target-path="/";
+		target-path = "/chosen";
 		__overlay__ {
-			chosen {
-				environment {
-					compatible = "barebox,environment";
-					device-path = ENV_DEVICE_PATH;
-				};
+			environment {
+				compatible = "barebox,environment";
+				device-path = ENV_DEVICE_PATH;
 			};
+		};
+	};
+
+	fragment@2 {
+		target-path = "/";
+		__overlay__ {
 			aliases {
 				state = "/state";
 			};

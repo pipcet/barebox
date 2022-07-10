@@ -1,3 +1,5 @@
-obj-y += clep7212.o
+# SPDX-License-Identifier: GPL-2.0-only
+
+obj-y += board.o
 lwl-y += lowlevel.o
-bbenv-y += defaultenv-clep7212
+bbenv-$(CONFIG_DEFAULT_ENVIRONMENT) += defaultenv-clep7212

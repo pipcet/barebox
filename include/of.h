@@ -58,12 +58,12 @@ struct of_reserve_map {
 };
 
 int of_add_reserve_entry(resource_size_t start, resource_size_t end);
-struct of_reserve_map *of_get_reserve_map(void);
 void of_clean_reserve_map(void);
 void fdt_add_reserve_map(void *fdt);
 
 struct device_d;
 struct driver_d;
+struct resource;
 
 int of_fix_tree(struct device_node *);
 
@@ -107,7 +107,7 @@ void of_print_cmdline(struct device_node *root);
 
 void of_print_nodes(struct device_node *node, int indent);
 void of_print_properties(struct device_node *node);
-void of_diff(struct device_node *a, struct device_node *b, int indent);
+int of_diff(struct device_node *a, struct device_node *b, int indent);
 int of_probe(void);
 int of_parse_dtb(struct fdt_header *fdt);
 struct device_node *of_unflatten_dtb(const void *fdt, int size);
@@ -116,10 +116,12 @@ struct device_node *of_unflatten_dtb_const(const void *infdt, int size);
 struct cdev;
 
 #ifdef CONFIG_OFTREE
+extern struct of_reserve_map *of_get_reserve_map(void);
 extern int of_bus_n_addr_cells(struct device_node *np);
 extern int of_n_addr_cells(struct device_node *np);
 extern int of_bus_n_size_cells(struct device_node *np);
 extern int of_n_size_cells(struct device_node *np);
+extern bool of_node_name_eq(const struct device_node *np, const char *name);
 
 extern struct property *of_find_property(const struct device_node *np,
 					const char *name, int *lenp);
@@ -137,6 +139,8 @@ extern struct property *of_new_property_const(struct device_node *node,
 extern void of_delete_property(struct property *pp);
 
 extern struct device_node *of_find_node_by_name(struct device_node *from,
+	const char *name);
+extern struct device_node *of_find_node_by_name_address(struct device_node *from,
 	const char *name);
 extern struct device_node *of_find_node_by_path_from(struct device_node *from,
 						const char *path);
@@ -281,10 +285,10 @@ extern struct device_d *of_device_enable_and_register_by_name(const char *name);
 extern struct device_d *of_device_enable_and_register_by_alias(
 							const char *alias);
 
-extern struct device_d *of_device_create_on_demand(struct device_node *np);
 extern int of_device_ensure_probed(struct device_node *np);
 extern int of_device_ensure_probed_by_alias(const char *alias);
 extern int of_devices_ensure_probed_by_property(const char *property_name);
+extern int of_devices_ensure_probed_by_name(const char *name);
 extern int of_devices_ensure_probed_by_dev_id(const struct of_device_id *ids);
 extern int of_partition_ensure_probed(struct device_node *np);
 
@@ -313,7 +317,21 @@ struct device_node *of_find_node_by_path_or_alias(struct device_node *root,
 		const char *str);
 int of_autoenable_device_by_path(char *path);
 int of_autoenable_i2c_by_component(char *path);
+int of_prepend_machine_compatible(struct device_node *root, const char *compat);
+
+int of_reserved_mem_walk(int (*handler)(const struct resource *res));
+
 #else
+static inline struct of_reserve_map *of_get_reserve_map(void)
+{
+	return NULL;
+}
+
+static inline bool of_node_name_eq(const struct device_node *np, const char *name)
+{
+	return false;
+}
+
 static inline int of_parse_partitions(struct cdev *cdev,
 					  struct device_node *node)
 {
@@ -373,11 +391,6 @@ static inline struct device_d *of_platform_device_create(struct device_node *np,
 
 static inline void of_platform_device_dummy_drv(struct device_d *dev)
 {
-}
-
-static inline struct device_d *of_device_create_on_demand(struct device_node *np)
-{
-	return NULL;
 }
 
 static inline int of_device_ensure_probed(struct device_node *np)
@@ -665,6 +678,12 @@ static inline struct device_node *of_find_node_by_name(struct device_node *from,
 	return NULL;
 }
 
+static inline struct device_node *of_find_node_by_name_address(struct device_node *from,
+	const char *name)
+{
+	return NULL;
+}
+
 static inline struct device_node *of_find_node_by_phandle(phandle phandle)
 {
 	return NULL;
@@ -825,6 +844,16 @@ static inline int of_autoenable_i2c_by_component(char *path)
 	return -ENODEV;
 }
 
+static inline int of_prepend_machine_compatible(struct device_node *root,
+					 const char *compat)
+{
+	return -ENODEV;
+}
+
+static inline int of_reserved_mem_walk(int (*handler)(const struct resource *res))
+{
+	return 0;
+}
 
 #endif
 
@@ -833,12 +862,18 @@ static inline int of_autoenable_i2c_by_component(char *path)
 #define for_each_node_by_name(dn, name) \
 	for (dn = of_find_node_by_name(NULL, name); dn; \
 	     dn = of_find_node_by_name(dn, name))
+#define for_each_node_by_name_address(dn, name) \
+	for (dn = of_find_node_by_name_address(NULL, name); dn; \
+	     dn = of_find_node_by_name_address(dn, name))
 #define for_each_node_by_type(dn, type) \
 	for (dn = of_find_node_by_type(NULL, type); dn; \
 	     dn = of_find_node_by_type(dn, type))
 #define for_each_node_by_name_from(dn, root, name) \
 	for (dn = of_find_node_by_name(root, name); dn; \
 	     dn = of_find_node_by_name(dn, name))
+#define for_each_node_by_name_address_from(dn, root, name) \
+	for (dn = of_find_node_by_name_address(root, name); dn; \
+	     dn = of_find_node_by_name_address(dn, name))
 /* Iterate over compatible nodes starting from given root */
 #define for_each_compatible_node_from(dn, root, type, compatible) \
 	for (dn = of_find_compatible_node(root, type, compatible); dn; \

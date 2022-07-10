@@ -41,7 +41,8 @@ EXPORT_SYMBOL(device_list);
 LIST_HEAD(driver_list);
 EXPORT_SYMBOL(driver_list);
 
-static LIST_HEAD(active);
+LIST_HEAD(active_device_list);
+EXPORT_SYMBOL(active_device_list);
 static LIST_HEAD(deferred);
 
 struct device_d *get_device_by_name(const char *name)
@@ -91,7 +92,7 @@ int device_probe(struct device_d *dev)
 	pinctrl_select_state_default(dev);
 	of_clk_set_defaults(dev->device_node, false);
 
-	list_add(&dev->active, &active);
+	list_add(&dev->active, &active_device_list);
 
 	ret = dev->bus->probe(dev);
 	if (ret == 0)
@@ -268,6 +269,36 @@ int unregister_device(struct device_d *old_dev)
 	return 0;
 }
 EXPORT_SYMBOL(unregister_device);
+
+/**
+ * free_device_res - free dynamically allocated device members
+ * @dev: The device
+ *
+ * This frees dynamically allocated resources allocated during device
+ * lifetime, but not the device itself.
+ */
+void free_device_res(struct device_d *dev)
+{
+	free(dev->name);
+	dev->name = NULL;
+	free(dev->unique_name);
+	dev->unique_name = NULL;
+}
+EXPORT_SYMBOL(free_device_res);
+
+/**
+ * free_device - free a device
+ * @dev: The device
+ *
+ * This frees dynamically allocated resources allocated during device
+ * lifetime and finally the device itself.
+ */
+void free_device(struct device_d *dev)
+{
+	free_device_res(dev);
+	free(dev);
+}
+EXPORT_SYMBOL(free_device);
 
 /*
  * Loop over list of deferred devices as long as at least one
@@ -502,11 +533,15 @@ EXPORT_SYMBOL_GPL(dev_set_name);
 static void devices_shutdown(void)
 {
 	struct device_d *dev;
+	int depth = 0;
 
-	list_for_each_entry(dev, &active, active) {
+	list_for_each_entry(dev, &active_device_list, active) {
 		if (dev->bus->remove) {
+			depth++;
+			pr_report_probe("%*sremove-> %s\n", depth * 4, "", dev_name(dev));
 			dev->bus->remove(dev);
 			dev->driver = NULL;
+			depth--;
 		}
 	}
 }
@@ -584,3 +619,31 @@ int dev_err_probe(const struct device_d *dev, int err, const char *fmt, ...)
 	return err;
 }
 EXPORT_SYMBOL_GPL(dev_err_probe);
+
+/*
+ * device_find_child - device iterator for locating a particular device.
+ * @parent: parent struct device_d
+ * @match: Callback function to check device
+ * @data: Data to pass to match function
+ *
+ * The callback should return 0 if the device doesn't match and non-zero
+ * if it does.  If the callback returns non-zero and a reference to the
+ * current device can be obtained, this function will return to the caller
+ * and not iterate over any more devices.
+ */
+struct device_d *device_find_child(struct device_d *parent, void *data,
+				 int (*match)(struct device_d *dev, void *data))
+{
+	struct device_d *child;
+
+	if (!parent)
+		return NULL;
+
+	list_for_each_entry(child, &parent->children, sibling) {
+		if (match(child, data))
+			return child;
+	}
+
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(device_find_child);

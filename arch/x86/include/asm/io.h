@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 /*
  * Mostly stolen from the linux kernel
  */
@@ -63,13 +65,13 @@ BUILDIO(l, , int)
 
 #define outb	outb
 #define outw	outw
-#define outl	outb
+#define outl	outl
 #define inb	inb
 #define inw	inw
 #define inl	inl
 #define outsb	outsb
 #define outsw	outsw
-#define outsl	outsb
+#define outsl	outsl
 #define insb	insb
 #define insw	insw
 #define insl	insl

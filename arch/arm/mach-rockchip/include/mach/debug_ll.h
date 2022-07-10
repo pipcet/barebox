@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef __MACH_DEBUG_LL_H__
 #define __MACH_DEBUG_LL_H__
 
@@ -6,6 +8,7 @@
 #include <mach/rk3188-regs.h>
 #include <mach/rk3288-regs.h>
 #include <mach/rk3568-regs.h>
+#include <mach/rk3399-regs.h>
 
 #ifdef CONFIG_DEBUG_LL
 
@@ -27,6 +30,13 @@
 
 #define UART_CLOCK		24000000
 #define RK_DEBUG_SOC		RK3568
+#define serial_out(a, v)	writel(v, a)
+#define serial_in(a)		readl(a)
+
+#elif defined CONFIG_DEBUG_ROCKCHIP_RK3399_UART
+
+#define UART_CLOCK		24000000
+#define RK_DEBUG_SOC		RK3399
 #define serial_out(a, v)	writel(v, a)
 #define serial_in(a)		readl(a)
 

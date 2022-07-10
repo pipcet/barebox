@@ -21,6 +21,7 @@ struct rk_gmac_ops {
 	void (*set_rmii_speed)(struct eqos *eqos, int speed);
 	void (*set_rgmii_speed)(struct eqos *eqos, int speed);
 	void (*integrated_phy_powerup)(struct eqos *eqos);
+	const u32 *regs;
 };
 
 struct eqos_rk_gmac {
@@ -44,7 +45,6 @@ enum {
 	CLK_MAC_PCLK,
 	CLK_MAC_SPEED,
 	CLK_PTP_REF,
-	CLK_XPCS_PCLK,
 };
 
 static const struct clk_bulk_data rk_gmac_clks[] = {
@@ -56,7 +56,6 @@ static const struct clk_bulk_data rk_gmac_clks[] = {
 	[CLK_MAC_PCLK]    = { .id = "pclk_mac" },
 	[CLK_MAC_SPEED]   = { .id = "clk_mac_speed" },
 	[CLK_PTP_REF]     = { .id = "ptp_ref" },
-	[CLK_XPCS_PCLK]   = { .id = "pclk_xpcs" },
 };
 
 static inline struct eqos_rk_gmac *to_rk_gmac(struct eqos *eqos)
@@ -176,6 +175,11 @@ static const struct rk_gmac_ops rk3568_ops = {
 	.set_to_rmii = rk3568_set_to_rmii,
 	.set_rmii_speed = rk3568_set_gmac_speed,
 	.set_rgmii_speed = rk3568_set_gmac_speed,
+	.regs = (u32 []) {
+		0xfe2a0000, /* gmac0 */
+		0xfe010000, /* gmac1 */
+		0x0, /* sentinel */
+	},
 };
 
 static int rk_gmac_powerup(struct eqos *eqos)
@@ -230,7 +234,7 @@ static int eqos_init_rk_gmac(struct device_d *dev, struct eqos *eqos)
 {
 	struct device_node *np = dev->device_node;
 	struct eqos_rk_gmac *priv = to_rk_gmac(eqos);
-	int ret;
+	int i = 0, ret;
 	const char *strings;
 
 	priv->dev = dev;
@@ -249,7 +253,15 @@ static int eqos_init_rk_gmac(struct device_d *dev, struct eqos *eqos)
 
 	priv->ops = device_get_match_data(dev);
 
-	priv->bus_id = of_alias_get_id(np, "ethernet");
+	if (dev->num_resources > 0 && priv->ops->regs) {
+		while (priv->ops->regs[i]) {
+			if (priv->ops->regs[i] == dev->resource[0].start) {
+				priv->bus_id = i;
+				break;
+			}
+			i++;
+		}
+	}
 
 	priv->grf = syscon_regmap_lookup_by_phandle(np, "rockchip,grf");
 	if (IS_ERR(priv->grf)) {

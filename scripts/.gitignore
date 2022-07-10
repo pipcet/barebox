@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 bin2c
 mkimage
 fix_size
@@ -20,8 +22,6 @@ bareboxenv-target
 kernel-install-target
 bareboxcrc32-target
 bareboximd-target
-bareboxstate
-bareboxstate-target
 mk-am35xx-spi-image
 mxsimage
 mxsboot

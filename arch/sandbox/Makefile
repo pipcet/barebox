@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 KBUILD_DEFCONFIG := sandbox_defconfig
 
 KBUILD_CPPFLAGS += -D__SANDBOX__ -fno-strict-aliasing -fvisibility=hidden
@@ -71,6 +73,12 @@ BAREBOX_LDFLAGS += \
 cmd_barebox__ = $(CC) -o $@ $(BAREBOX_LDFLAGS)
 
 common-y += $(BOARD) arch/sandbox/os/ arch/sandbox/lib/
+
+stickypage.bin:
+	@$(kecho) "  LN      stickypage.bin"
+	@ln -fs arch/sandbox/board/stickypage.bin stickypage.bin
+
+KBUILD_IMAGE := barebox stickypage.bin
 
 common-$(CONFIG_OFTREE) += arch/sandbox/dts/
 

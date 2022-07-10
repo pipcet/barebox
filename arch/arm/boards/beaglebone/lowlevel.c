@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #include <init.h>
 #include <linux/sizes.h>
 #include <io.h>
@@ -13,7 +15,6 @@
 #include <mach/syslib.h>
 #include <mach/am33xx-mux.h>
 #include <mach/am33xx-generic.h>
-#include <mach/wdt.h>
 
 #include "beaglebone.h"
 
@@ -116,17 +117,11 @@ static noinline int beaglebone_sram_init(void)
 	else
 		sdram_size = SZ_256M;
 
-	/* WDT1 is already running when the bootloader gets control
-	 * Disable it to avoid "random" resets
-	 */
-	__raw_writel(WDT_DISABLE_CODE1, AM33XX_WDT_REG(WSPR));
-	while(__raw_readl(AM33XX_WDT_REG(WWPS)) != 0x0);
-	__raw_writel(WDT_DISABLE_CODE2, AM33XX_WDT_REG(WSPR));
-	while(__raw_readl(AM33XX_WDT_REG(WWPS)) != 0x0);
+	omap_watchdog_disable(IOMEM(AM33XX_WDT_BASE));
 
 	/* Setup the PLLs and the clocks for the peripherals */
 	if (is_beaglebone_black()) {
-		am33xx_pll_init(MPUPLL_M_800, DDRPLL_M_400);
+		am33xx_pll_init(MPUPLL_M_500, DDRPLL_M_400);
 		am335x_sdram_init(0x18B, &ddr3_cmd_ctrl, &ddr3_regs,
 				&ddr3_data);
 	} else {

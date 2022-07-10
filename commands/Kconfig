@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 config REGINFO
 	bool
 
@@ -20,6 +22,13 @@ menu "Commands"
 
 
 menu "Information"
+
+config CMD_TUTORIAL
+	bool "barebox tutorial (next command)"
+	default SANDBOX
+	help
+	  Help navigate a barebox tutorial available
+	  in /env/data/tutorial/
 
 config CMD_AT91CLK
 	bool "at91clk"
@@ -65,6 +74,18 @@ config CMD_DEVINFO
 
 	  If called with a device path being the argument, devinfo shows more
 	  default information about this device and its parameters.
+
+config CMD_DEVUNBIND
+	tristate
+	prompt "devunbind"
+	help
+	  Debugging aid to unbind device(s) from driver at runtime
+
+	  devunbind [-fl] DEVICES..
+
+	  Options:
+		-f   unbind driver and force removal of device and children
+		-l   list remove callbacks in shutdown order
 
 config CMD_DMESG
 	tristate
@@ -1251,6 +1272,14 @@ config CMD_IP_ROUTE_GET
 	  be shown on the command line or alternatively a variable is set to
 	  the result.
 
+config CMD_ETHLOG
+	tristate
+	prompt "ethlog"
+	help
+	  log ethernet traffic.
+
+	  Usage: ethlog [-r] [DEVICENAME]
+
 # end Network commands
 endmenu
 
@@ -1298,6 +1327,7 @@ config CMD_ECHO_E
 
 config CMD_EDIT
 	tristate
+	depends on CONSOLE_FULL || CONSOLE_SIMPLE
 	prompt "edit"
 	help
 	  A  small fill-screen editor.
@@ -1947,6 +1977,21 @@ config CMD_SPI
 		  -f HZ		max speed frequency, in Hz (default 1 MHz)
 		  -w BIT	bits per word (default 8)
 		  -v		verbose
+
+config CMD_MIPI_DBI
+	bool
+	depends on DRIVER_VIDEO_MIPI_DBI && SPI
+	select PRINTF_HEXSTR
+	prompt "mipi_dbi command"
+	help
+	  write/read from MIPI DBI SPI device
+
+	  Usage: mipi_dbi [-wld] [REG] [DATA...]
+
+	  Options:
+		  -l		list all MIPI DBI devices
+		  -d DEVICE	select specific device (default is first registered)
+		  -w		issue write command
 
 config CMD_LED_TRIGGER
 	bool

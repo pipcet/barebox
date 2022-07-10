@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 menu "Library gui routines"
 
 config IMAGE_RENDERER
@@ -15,6 +17,11 @@ config BMP
 config PNG
 	bool "png"
 	select ZLIB
+
+config QOI
+	bool "qoi"
+	help
+	  Support for the Quite OK Image format
 
 if PNG
 

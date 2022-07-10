@@ -31,7 +31,6 @@
 #include <binfmt.h>
 #include <wchar.h>
 #include <envfs.h>
-#include <efi.h>
 #include <efi/efi-payload.h>
 #include <efi/efi-device.h>
 #include <libfile.h>
@@ -349,7 +348,9 @@ static int efi_late_init(void)
 		if (IS_ERR(root))
 			return PTR_ERR(root);
 
-		of_set_root_node(root);
+		ret = barebox_register_of(root);
+		if (ret)
+			pr_warn("Failed to register device-tree: %pe\n", ERR_PTR(ret));
 
 		np = of_find_node_by_alias(root, "state");
 
@@ -358,7 +359,7 @@ static int efi_late_init(void)
 			return PTR_ERR(state);
 
 		ret = state_load(state);
-		if (ret)
+		if (ret != -ENOMEDIUM)
 			pr_warn("Failed to load persistent state, continuing with defaults, %d\n",
 				ret);
 

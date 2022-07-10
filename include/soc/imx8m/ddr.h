@@ -8,7 +8,6 @@
 
 #include <io.h>
 #include <asm/types.h>
-#include <soc/imx8m/ddr.h>
 
 #define DDRC_DDR_SS_GPR0		0x3d000000
 #define DDRC_IPS_BASE_ADDR_0		0x3f400000
@@ -407,6 +406,7 @@ static inline void reg32setbit(unsigned long addr, u32 bit)
 #define dwc_ddrphy_apb_rd(addr) \
 	reg32_read(IOMEM(IP2APB_DDRPHY_IPS_BASE_ADDR(0)) + 4 * (addr))
 
+extern bool imx8m_ddr_old_spreadsheet;
 extern struct dram_cfg_param ddrphy_trained_csr[];
 extern uint32_t ddrphy_trained_csr_num;
 

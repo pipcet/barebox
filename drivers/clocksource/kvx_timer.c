@@ -21,6 +21,7 @@ static struct clocksource kvx_clksrc = {
 	.read	= kvx_pm_read,
 	.mask	= CLOCKSOURCE_MASK(64),
 	.shift	= 0,
+	.priority = 70,
 };
 
 static int kvx_timer_probe(struct device_d *dev)
@@ -55,4 +56,4 @@ static struct driver_d kvx_timer_driver = {
 	.of_compatible = DRV_OF_COMPAT(kvx_timer_dt_ids),
 };
 
-device_platform_driver(kvx_timer_driver);
+postcore_platform_driver(kvx_timer_driver);

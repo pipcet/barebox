@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # NOTE! Don't add files that are generated in specific
 # subdirectories here. Add them in the ".gitignore" file
@@ -59,6 +60,8 @@ Module.symvers
 # Generated files
 Documentation/commands/*.rst
 doctrees/
+log/
+makeall_builddir/
 
 # stgit generated dirs
 patches-*
@@ -89,3 +92,4 @@ GTAGS
 /allrandom.config
 /allyes.config
 /compile_commands.json
+/stickypage.bin

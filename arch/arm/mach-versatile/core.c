@@ -92,6 +92,7 @@ static struct clocksource vpb_cs = {
 	.read = vpb_clocksource_read,
 	.mask = CLOCKSOURCE_MASK(32),
 	.shift = 10,
+	.priority = 80,
 };
 
 /* From Linux v2.6.35
@@ -172,7 +173,7 @@ void versatile_register_uart(unsigned id)
 	amba_apb_device_add(NULL, "uart-pl011", id, start, 4096, NULL, 0);
 }
 
-static void versatile_reset_soc(struct restart_handler *rst)
+static void __noreturn versatile_reset_soc(struct restart_handler *rst)
 {
 	u32 val;
 

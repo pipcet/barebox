@@ -70,7 +70,6 @@ static int of_unflatten_reservemap(struct device_node *root,
 	int n;
 	struct property *p;
 	struct device_node *memreserve;
-	__be32 cells;
 
 	n = of_reservemap_num_entries(fdt);
 	if (n <= 0)
@@ -78,16 +77,6 @@ static int of_unflatten_reservemap(struct device_node *root,
 
 	memreserve = of_new_node(root, "memreserve");
 	if (!memreserve)
-		return -ENOMEM;
-
-	cells = cpu_to_be32(2);
-
-	p = of_new_property(memreserve, "#address-cells", &cells, sizeof(__be32));
-	if (!p)
-		return -ENOMEM;
-
-	p = of_new_property(memreserve, "#size-cells", &cells, sizeof(__be32));
-	if (!p)
 		return -ENOMEM;
 
 	p = of_new_property(memreserve, "reg",
@@ -486,7 +475,7 @@ void *of_flatten_dtb(struct device_node *node)
 	if (ret)
 		goto out_free;
 
-	memreserve = of_find_node_by_name(node, "memreserve");
+	memreserve = of_find_node_by_name_address(node, "memreserve");
 	if (memreserve) {
 		const void *entries = of_get_property(memreserve, "reg", &len);
 

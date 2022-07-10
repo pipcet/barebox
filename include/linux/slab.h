@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef _LINUX_SLAB_H
 #define _LINUX_SLAB_H
 
@@ -100,5 +102,8 @@ static inline void *kcalloc(size_t n, size_t size, gfp_t flags)
 {
 	return calloc(n, size);
 }
+
+#define kstrdup_const(str, flags) strdup(str)
+#define kfree_const(ptr) kfree((void *)ptr)
 
 #endif /* _LINUX_SLAB_H */

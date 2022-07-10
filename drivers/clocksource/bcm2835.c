@@ -28,6 +28,8 @@ static uint64_t stc_read_cycles(void)
 static struct clocksource bcm2835_stc = {
 	.read = stc_read_cycles,
 	.mask = CLOCKSOURCE_MASK(32),
+	/* Give the architected timer precedence on AArch64 */
+	.priority = IS_ENABLED(CONFIG_CPU_V8) ? 60 : 80,
 };
 
 static int bcm2835_cs_probe(struct device_d *dev)

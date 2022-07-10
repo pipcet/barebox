@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 menuconfig FS_UBIFS
 	bool
 	depends on MTD_UBI
@@ -14,5 +16,10 @@ config FS_UBIFS_COMPRESSION_ZLIB
 	bool
 	select ZLIB
 	prompt "ZLIB compression support"
+
+config FS_UBIFS_COMPRESSION_ZSTD
+	bool
+	select ZSTD_DECOMPRESS
+	prompt "ZSTD compression support"
 
 endif

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef __LINUX_COMPILER_TYPES_H
 #define __LINUX_COMPILER_TYPES_H
 
@@ -110,6 +112,27 @@ struct ftrace_likely_data {
 #define __deprecated
 #define __deprecated_for_modules
 
+#ifndef __has_attribute
+#define __has_attribute(...)		0
+#endif
+
+/*
+ * Add the pseudo keyword 'fallthrough' so case statement blocks
+ * must end with any of these keywords:
+ *   break;
+ *   fallthrough;
+ *   continue;
+ *   goto <label>;
+ *   return [expression];
+ *
+ *  gcc: https://gcc.gnu.org/onlinedocs/gcc/Statement-Attributes.html#Statement-Attributes
+ */
+#if __has_attribute(__fallthrough__)
+# define fallthrough                    __attribute__((__fallthrough__))
+#else
+# define fallthrough                    do {} while (0)  /* fallthrough */
+#endif
+
 #endif /* __KERNEL__ */
 
 #endif /* __ASSEMBLY__ */
@@ -199,8 +222,8 @@ struct ftrace_likely_data {
 #define __pure			__attribute__((pure))
 #define __aligned(x)		__attribute__((aligned(x)))
 #define __aligned_largest	__attribute__((aligned))
-#define __printf(a, b)		__attribute__((format(printf, a, b)))
-#define __scanf(a, b)		__attribute__((format(scanf, a, b)))
+#define __printf(a, b)		__attribute__((format(__printf__, a, b)))
+#define __scanf(a, b)		__attribute__((format(__scanf__, a, b)))
 #define __maybe_unused		__attribute__((unused))
 #define __always_unused		__attribute__((unused))
 #define __mode(x)		__attribute__((mode(x)))

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #include <common.h>
 #include <command.h>
 #include <getopt.h>
@@ -97,12 +99,12 @@ static int do_clk_round_rate(int argc, char *argv[])
 }
 
 BAREBOX_CMD_HELP_START(clk_round_rate)
-BAREBOX_CMD_HELP_TEXT("Set clock CLK to RATE")
+BAREBOX_CMD_HELP_TEXT("Show clock CLK actual rate if set to HZ")
 BAREBOX_CMD_HELP_END
 
 BAREBOX_CMD_START(clk_round_rate)
 	.cmd		= do_clk_round_rate,
-	BAREBOX_CMD_DESC("set a clocks rate")
+	BAREBOX_CMD_DESC("show a resulting clocks rate")
 	BAREBOX_CMD_OPTS("CLK HZ")
 	BAREBOX_CMD_GROUP(CMD_GRP_HWMANIP)
 	BAREBOX_CMD_HELP(cmd_clk_round_rate_help)
@@ -137,13 +139,9 @@ static int do_clk_get_rate(int argc, char *argv[])
 
 	rate = clk_get_rate(clk);
 
-	if (variable_name) {
-		char *t;
-
-		t = basprintf("%lu", rate);
-		setenv(variable_name, t);
-		free(t);
-	} else
+	if (variable_name)
+		pr_setenv(variable_name, "%lu", rate);
+	else
 		printf("%lu\n", rate);
 
 	return COMMAND_SUCCESS;

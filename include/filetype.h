@@ -28,6 +28,7 @@ enum filetype {
 	filetype_mbr,
 	filetype_bmp,
 	filetype_png,
+	filetype_qoi,
 	filetype_ext,
 	filetype_gpt,
 	filetype_ubifs,
@@ -51,10 +52,12 @@ enum filetype {
 	filetype_layerscape_image,
 	filetype_layerscape_qspi_image,
 	filetype_ubootvar,
-	filetype_stm32_image_v1,
+	filetype_stm32_image_fsbl_v1,
+	filetype_stm32_image_ssbl_v1,
 	filetype_zynq_image,
 	filetype_mxs_sd_image,
 	filetype_rockchip_rkns_image,
+	filetype_fip,
 	filetype_max,
 };
 

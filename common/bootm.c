@@ -41,6 +41,7 @@ static struct image_handler *bootm_find_handler(enum filetype filetype,
 }
 
 static int bootm_appendroot;
+static int bootm_earlycon;
 static int bootm_provide_machine_id;
 static int bootm_verbosity;
 
@@ -113,7 +114,7 @@ int bootm_load_os(struct image_data *data, unsigned long load_address)
 				load_address, kernel_size);
 		if (!data->os_res) {
 			pr_err("unable to request SDRAM region for kernel at"
-					"0x%08llx-0x%08llx\n",
+					" 0x%08llx-0x%08llx\n",
 				(unsigned long long)load_address,
 				(unsigned long long)load_address + kernel_size - 1);
 			return -ENOMEM;
@@ -709,15 +710,15 @@ int bootm_boot(struct bootm_data *bootm_data)
 			const char *root_dev_name = devpath_to_name(bootm_data->root_dev);
 			const struct cdev *root_cdev = cdev_by_name(root_dev_name);
 
-			if (root_cdev && root_cdev->partuuid[0] != 0) {
-				rootarg = basprintf("root=PARTUUID=%s", root_cdev->partuuid);
+			if (root_cdev && root_cdev->uuid[0] != 0) {
+				rootarg = basprintf("root=PARTUUID=%s", root_cdev->uuid);
 			} else {
 				rootarg = ERR_PTR(-EINVAL);
 
 				if (!root_cdev)
 					pr_err("no cdev found for %s, cannot set root= option\n",
 						root_dev_name);
-				else if (!root_cdev->partuuid[0])
+				else if (!root_cdev->uuid[0])
 					pr_err("%s doesn't have a PARTUUID, cannot set root= option\n",
 						root_dev_name);
 			}
@@ -730,6 +731,26 @@ int bootm_boot(struct bootm_data *bootm_data)
 					     rootarg);
 			free(rootarg);
 		}
+	}
+
+	if (bootm_earlycon) {
+		struct console_device *console;
+		const char *earlycon = NULL;
+
+		for_each_console(console) {
+			if (!(console->f_active & (CONSOLE_STDOUT | CONSOLE_STDERR)))
+				continue;
+
+			earlycon = dev_get_param(&console->class_dev, "linux.bootargs.earlycon");
+			if (earlycon)
+				break;
+		}
+
+		if (!earlycon)
+			earlycon = "earlycon";
+
+		pr_info("Adding \"%s\" to Kernel commandline\n", earlycon);
+		globalvar_add_simple("linux.bootargs.bootm.earlycon", earlycon);
 	}
 
 	if (bootm_data->provide_machine_id) {
@@ -798,6 +819,7 @@ err_out:
 	if (data->of_root_node && data->of_root_node != of_get_root_node())
 		of_delete_node(data->of_root_node);
 
+	globalvar_remove("linux.bootargs.bootm.earlycon");
 	globalvar_remove("linux.bootargs.bootm.appendroot");
 	free(data->os_header);
 	free(data->os_file);
@@ -897,6 +919,7 @@ static int bootm_init(void)
 	globalvar_add_simple("bootm.root_dev", NULL);
 	globalvar_add_simple("bootm.tee", NULL);
 	globalvar_add_simple_bool("bootm.appendroot", &bootm_appendroot);
+	globalvar_add_simple_bool("bootm.earlycon", &bootm_earlycon);
 	globalvar_add_simple_bool("bootm.provide_machine_id", &bootm_provide_machine_id);
 	if (IS_ENABLED(CONFIG_BOOTM_INITRD)) {
 		globalvar_add_simple("bootm.initrd", NULL);
@@ -936,6 +959,7 @@ BAREBOX_MAGICVAR(global.bootm.oftree, "bootm default oftree");
 BAREBOX_MAGICVAR(global.bootm.tee, "bootm default tee image");
 BAREBOX_MAGICVAR(global.bootm.verify, "bootm default verify level");
 BAREBOX_MAGICVAR(global.bootm.verbose, "bootm default verbosity level (0=quiet)");
+BAREBOX_MAGICVAR(global.bootm.earlycon, "Add earlycon option to Kernel for early log output");
 BAREBOX_MAGICVAR(global.bootm.appendroot, "Add root= option to Kernel to mount rootfs from the device the Kernel comes from (default, device can be overridden via global.bootm.root_dev)");
 BAREBOX_MAGICVAR(global.bootm.root_dev, "bootm default root device (overrides default device in global.bootm.appendroot)");
 BAREBOX_MAGICVAR(global.bootm.provide_machine_id, "If true, append systemd.machine_id=$global.machine_id to Kernel command line");

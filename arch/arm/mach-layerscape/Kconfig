@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 if ARCH_LAYERSCAPE
 
 config ARCH_LAYERSCAPE_PPA
@@ -15,7 +17,7 @@ config ARCH_LAYERSCAPE_PPA
 
 config ARCH_LS1046
 	select CPU_V8
-	select SYS_SUPPORTS_64BIT_KERNEL
+	select CPU_SUPPORTS_64BIT_KERNEL
 	bool
 
 config MACH_LS1046ARDB

@@ -154,8 +154,8 @@ static int is_gpt_valid(struct block_device *blk, u64 lba,
 
 	/* Check the GPT header signature */
 	if (le64_to_cpu((*gpt)->signature) != GPT_HEADER_SIGNATURE) {
-		dev_dbg(blk->dev, "GUID Partition Table Header signature is wrong:"
-			"0x%llX != 0x%llX\n",
+		dev_dbg(blk->dev, "GUID Partition Table Header signature at LBA"
+			"%llu is wrong: 0x%llX != 0x%llX\n", lba,
 			(unsigned long long)le64_to_cpu((*gpt)->signature),
 			(unsigned long long)GPT_HEADER_SIGNATURE);
 		goto fail;
@@ -444,6 +444,8 @@ static void efi_partition(void *buf, struct block_device *blk,
 		kfree(ptes);
 		return;
 	}
+
+	snprintf(blk->cdev.uuid, sizeof(blk->cdev.uuid), "%pUl", &gpt->disk_guid);
 
 	nb_part = le32_to_cpu(gpt->num_partition_entries);
 

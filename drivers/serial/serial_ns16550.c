@@ -39,11 +39,14 @@ struct ns16550_priv {
 	unsigned iobase;
 	void (*write_reg)(struct ns16550_priv *, uint8_t val, unsigned offset);
 	uint8_t (*read_reg)(struct ns16550_priv *, unsigned offset);
+	const char *access_type;
 };
 
 struct ns16550_drvdata {
         void (*init_port)(struct console_device *cdev);
         const char *linux_console_name;
+        const char *linux_earlycon_name;
+	unsigned int clk_default;
 };
 
 static inline struct ns16550_priv *to_ns16550_priv(struct console_device *cdev)
@@ -169,7 +172,6 @@ static inline unsigned int ns16550_calc_divisor(struct console_device *cdev,
 	unsigned int clk = plat->clock;
 
 	return (clk / MODE_X_DIV / baudrate);
-
 }
 
 /**
@@ -240,14 +242,10 @@ static void ns16550_jz_init_port(struct console_device *cdev)
 	ns16550_serial_init_port(cdev);
 }
 
-#define BCM2836_AUX_CLOCK_ENB 0x3f215004 /* BCM2835 AUX Clock enable register */
-#define BCM2836_AUX_CLOCK_EN_UART BIT(0) /* Bit 0 enables the Miniuart */
-
 static void rpi_init_port(struct console_device *cdev)
 {
 	struct ns16550_priv *priv = to_ns16550_priv(cdev);
 
-	writeb(BCM2836_AUX_CLOCK_EN_UART, BCM2836_AUX_CLOCK_ENB);
 	priv->plat.shift = 2;
 	/*
 	 * We double the clock rate since the 16550 will divide by 16
@@ -323,22 +321,27 @@ static void ns16550_probe_dt(struct device_d *dev, struct ns16550_priv *priv)
 		priv->mmiobase += offset;
 	of_property_read_u32(np, "reg-shift", &priv->plat.shift);
 	of_property_read_u32(np, "reg-io-width", &width);
+
 	switch (width) {
 	case 1:
 		priv->read_reg = ns16550_read_reg_mmio_8;
 		priv->write_reg = ns16550_write_reg_mmio_8;
+		priv->access_type = "mmio";
 		break;
 	case 2:
 		priv->read_reg = ns16550_read_reg_mmio_16;
 		priv->write_reg = ns16550_write_reg_mmio_16;
+		priv->access_type = "mmio16";
 		break;
 	case 4:
 		if (of_device_is_big_endian(np)) {
 			priv->read_reg = ns16550_read_reg_mmio_32be;
 			priv->write_reg = ns16550_write_reg_mmio_32be;
+			priv->access_type = "mmio32be";
 		} else {
 			priv->read_reg = ns16550_read_reg_mmio_32;
 			priv->write_reg = ns16550_write_reg_mmio_32;
+			priv->access_type = "mmio32";
 		}
 		break;
 	default:
@@ -350,30 +353,36 @@ static void ns16550_probe_dt(struct device_d *dev, struct ns16550_priv *priv)
 static struct ns16550_drvdata ns16450_drvdata = {
 	.init_port = ns16450_serial_init_port,
 	.linux_console_name = "ttyS",
+	.linux_earlycon_name = "uart8250",
 };
 
 static struct ns16550_drvdata ns16550_drvdata = {
 	.init_port = ns16550_serial_init_port,
 	.linux_console_name = "ttyS",
+	.linux_earlycon_name = "uart8250",
 };
 
 static __maybe_unused struct ns16550_drvdata omap_drvdata = {
 	.init_port = ns16550_omap_init_port,
 	.linux_console_name = "ttyO",
+	.linux_earlycon_name = "omap8250",
+};
+
+static __maybe_unused struct ns16550_drvdata am43xx_drvdata = {
+	.init_port = ns16550_omap_init_port,
+	.linux_console_name = "ttyO",
+	.clk_default = 48000000,
 };
 
 static __maybe_unused struct ns16550_drvdata jz_drvdata = {
 	.init_port = ns16550_jz_init_port,
-};
-
-static __maybe_unused struct ns16550_drvdata tegra_drvdata = {
-	.init_port = ns16550_serial_init_port,
-	.linux_console_name = "ttyS",
+	.linux_earlycon_name = "jz4740_uart",
 };
 
 static __maybe_unused struct ns16550_drvdata rpi_drvdata = {
 	.init_port = rpi_init_port,
 	.linux_console_name = "ttyS",
+	.linux_earlycon_name = "bcm2835aux",
 };
 
 static int ns16550_init_iomem(struct device_d *dev, struct ns16550_priv *priv)
@@ -396,14 +405,17 @@ static int ns16550_init_iomem(struct device_d *dev, struct ns16550_priv *priv)
 	case IORESOURCE_MEM_8BIT:
 		priv->read_reg = ns16550_read_reg_mmio_8;
 		priv->write_reg = ns16550_write_reg_mmio_8;
+		priv->access_type = "mmio";
 		break;
 	case IORESOURCE_MEM_16BIT:
 		priv->read_reg = ns16550_read_reg_mmio_16;
 		priv->write_reg = ns16550_write_reg_mmio_16;
+		priv->access_type = "mmio16";
 		break;
 	case IORESOURCE_MEM_32BIT:
 		priv->read_reg = ns16550_read_reg_mmio_32;
 		priv->write_reg = ns16550_write_reg_mmio_32;
+		priv->access_type = "mmio32";
 		break;
 	}
 
@@ -441,6 +453,8 @@ static int ns16550_init_ioport(struct device_d *dev, struct ns16550_priv *priv)
 		break;
 	}
 
+	priv->access_type = "io";
+
 	return 0;
 }
 
@@ -477,6 +491,9 @@ static int ns16550_probe(struct device_d *dev)
 	else
 		ns16550_probe_dt(dev, priv);
 
+	if (devtype->clk_default && !priv->plat.clock)
+		priv->plat.clock = devtype->clk_default;
+
 	if (!priv->plat.clock) {
 		priv->clk = clk_get(dev, NULL);
 		if (IS_ERR(priv->clk)) {
@@ -502,6 +519,10 @@ static int ns16550_probe(struct device_d *dev)
 	cdev->setbrg = ns16550_setbaudrate;
 	cdev->flush = ns16550_flush;
 	cdev->linux_console_name = devtype->linux_console_name;
+	cdev->linux_earlycon_name = basprintf("%s,%s", devtype->linux_earlycon_name,
+					      priv->access_type);
+	cdev->phys_base = !strcmp(priv->access_type, "io") ?
+		IOMEM((ulong)priv->iobase) : priv->mmiobase;
 
 	priv->fcrval = FCRVAL;
 
@@ -521,13 +542,12 @@ static struct of_device_id ns16550_serial_dt_ids[] = {
 		.data = &ns16450_drvdata,
 	}, {
 		.compatible = "ns16550a",
-		.data = &ns16550_drvdata,
 	}, {
 		.compatible = "snps,dw-apb-uart",
-		.data = &ns16550_drvdata,
 	}, {
 		.compatible = "marvell,armada-38x-uart",
-		.data = &ns16550_drvdata,
+	}, {
+		.compatible = "nvidia,tegra20-uart",
 	},
 #if IS_ENABLED(CONFIG_ARCH_OMAP)
 	{
@@ -539,12 +559,9 @@ static struct of_device_id ns16550_serial_dt_ids[] = {
 	}, {
 		.compatible = "ti,omap4-uart",
 		.data = &omap_drvdata,
-	},
-#endif
-#if IS_ENABLED(CONFIG_ARCH_TEGRA)
-	{
-		.compatible = "nvidia,tegra20-uart",
-		.data = &tegra_drvdata,
+	}, {
+		.compatible = "ti,am4372-uart",
+		.data = &am43xx_drvdata,
 	},
 #endif
 #if IS_ENABLED(CONFIG_MACH_MIPS_XBURST)

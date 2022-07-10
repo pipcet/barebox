@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 ###
 # scripts contains sources for various helper programs used throughout
 # barebox for the build process.
@@ -8,6 +10,7 @@ hostprogs-always-y					+= fix_size
 hostprogs-always-y					+= bareboxenv
 hostprogs-always-y					+= bareboxcrc32
 hostprogs-always-y					+= kernel-install
+hostprogs-always-$(CONFIG_QOICONV)			+= qoiconv
 hostprogs-always-$(CONFIG_CRYPTO_RSA_BUILTIN_KEYS)	+= rsatoc
 HOSTCFLAGS_rsatoc = `pkg-config --cflags openssl`
 HOSTLDLIBS_rsatoc = `pkg-config --libs openssl`

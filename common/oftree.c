@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #include <common.h>
 #include <environment.h>
 #include <fdt.h>
@@ -204,6 +206,16 @@ static int of_fixup_bootargs(struct device_node *root, void *unused)
 	int err;
 	int instance = reset_source_get_instance();
 	struct device_d *dev;
+	const char *serialno;
+	const char *compat;
+
+	serialno = barebox_get_serial_number();
+	if (serialno)
+		of_property_write_string(root, "serial-number", serialno);
+
+	compat = barebox_get_of_machine_compatible();
+	if (compat)
+		of_prepend_machine_compatible(root, compat);
 
 	node = of_create_node(root, "/chosen");
 	if (!node)
@@ -403,7 +415,7 @@ int of_autoenable_device_by_path(char *path)
 	struct device_node *node;
 	int ret;
 
-	node = of_find_node_by_name(NULL, path);
+	node = of_find_node_by_name_address(NULL, path);
 	if (!node)
 		node = of_find_node_by_path(path);
 
@@ -440,7 +452,7 @@ int of_autoenable_i2c_by_component(char *path)
 	if (!IS_ENABLED(CONFIG_I2C))
 		return -ENODEV;
 
-	node = of_find_node_by_name(NULL, path);
+	node = of_find_node_by_name_address(NULL, path);
 	if (!node)
 		node = of_find_node_by_path(path);
 	if (!node)
@@ -475,4 +487,35 @@ int of_autoenable_i2c_by_component(char *path)
 		printf("autoenabled i2c device %s\n", node->name);
 
 	return ret;
+}
+
+int of_prepend_machine_compatible(struct device_node *root, const char *compat)
+{
+	int cclen = 0, clen = strlen(compat) + 1;
+	const char *curcompat;
+	void *buf;
+
+	if (!root) {
+		root = of_get_root_node();
+		if (!root)
+			return -ENODEV;
+	}
+
+	if (of_device_is_compatible(root, compat))
+		return 0;
+
+	curcompat = of_get_property(root, "compatible", &cclen);
+
+	buf = xzalloc(cclen + clen);
+
+	memcpy(buf, compat, clen);
+
+	if (curcompat)
+		memcpy(buf + clen, curcompat, cclen);
+
+	of_set_property(root, "compatible", buf, cclen + clen, true);
+
+	free(buf);
+
+	return 0;
 }

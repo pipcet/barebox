@@ -16,12 +16,10 @@
 #include <io.h>
 #include <common.h>
 #include <malloc.h>
-#include <common.h>
 #include <clock.h>
 #include <linux/err.h>
 
-#include <mach/omap4-silicon.h>
-#include <mach/omap-fb.h>
+#include <video/omap-fb.h>
 
 #include <mmu.h>
 

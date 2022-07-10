@@ -17,6 +17,10 @@ config I2C_AT91
 	bool "AT91 I2C Master driver"
 	depends on ARCH_AT91
 
+config I2C_BCM283X
+	bool "BCM283X I2C Master driver"
+	depends on ARCH_BCM283X || COMPILE_TEST
+
 config I2C_IMX
 	bool "MPC85xx/MPC5200/i.MX I2C Master driver"
 	depends on ARCH_IMX || ARCH_MPC85XX || ARCH_MPC5200 || ARCH_LAYERSCAPE
@@ -60,7 +64,23 @@ config I2C_STM32
 	bool "STM32 I2C master driver"
 	select RESET_CONTROLLER
 	depends on HAVE_CLK
-	depends on ARCH_STM32MP || COMPILE_TEST
+	depends on ARCH_STM32 || COMPILE_TEST
+
+config I2C_RK3X
+	tristate "Rockchip RK3xxx I2C adapter"
+	depends on HAVE_CLK
+	depends on ARCH_ROCKCHIP || COMPILE_TEST
+	help
+	  Say Y here to include support for the I2C adapter in Rockchip RK3xxx
+	  SoCs.
+
+config I2C_CADENCE
+	bool "Cadence I2C adapter"
+	depends on HAVE_CLK
+	depends on ARCH_ZYNQMP || COMPILE_TEST
+	help
+	  Say Y here to include support for the Cadence I2C host controller found
+	  in Zynq UltraScale+ MPSoCs.
 
 config I2C_APPLE
         bool "Apple M1 I2C master driver"

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 obj-$(CONFIG_I2C_AT91)		+= i2c-at91.o
 obj-$(CONFIG_I2C_APPLE)		+= i2c-apple.o
+obj-$(CONFIG_I2C_BCM283X)	+= i2c-bcm283x.o
 obj-$(CONFIG_I2C_GPIO)		+= i2c-gpio.o
 obj-$(CONFIG_I2C_IMX)		+= i2c-imx.o
 lwl-$(CONFIG_I2C_IMX_EARLY)	+= i2c-imx-early.o
@@ -10,3 +11,5 @@ obj-$(CONFIG_I2C_TEGRA)		+= i2c-tegra.o
 obj-$(CONFIG_I2C_VERSATILE)	+= i2c-versatile.o
 obj-$(CONFIG_I2C_DESIGNWARE)	+= i2c-designware.o
 obj-$(CONFIG_I2C_STM32)		+= i2c-stm32.o
+obj-$(CONFIG_I2C_RK3X)		+= i2c-rockchip.o
+obj-$(CONFIG_I2C_CADENCE)	+= i2c-cadence.o

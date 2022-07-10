@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 /*
  * NFS support driver - based on etherboot and barebox's tftp.c
  *
@@ -29,7 +31,6 @@
 #include <malloc.h>
 #include <libgen.h>
 #include <fs.h>
-#include <libgen.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <progress.h>

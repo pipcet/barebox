@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #include <common.h>
 #include <bootsource.h>
 #include <init.h>
@@ -61,18 +63,6 @@ void omap4_set_warmboot_order(u32 *device_list)
 	for (i = 0; i < ARRAY_SIZE(CH); i++)
 		writel(CH[i], OMAP44XX_SAR_CH_START + i*sizeof(CH[0]));
 	writel(OMAP44XX_SAR_CH_START, OMAP44XX_SAR_CH_ADDRESS);
-}
-
-#define WATCHDOG_WSPR	0x48
-#define WATCHDOG_WWPS	0x34
-
-static void wait_for_command_complete(void)
-{
-	int pending = 1;
-
-	do {
-		pending = readl(OMAP44XX_WDT2_BASE + WATCHDOG_WWPS);
-	} while (pending);
 }
 
 /* EMIF */
@@ -431,38 +421,29 @@ unsigned int omap4_revision(void)
 		return OMAP4430_ES1_0;
 	case MIDR_CORTEX_A9_R1P2:
 		switch (readl(CONTROL_ID_CODE)) {
-		case OMAP4_CONTROL_ID_CODE_ES2_0:
-			return OMAP4430_ES2_0;
-			break;
 		case OMAP4_CONTROL_ID_CODE_ES2_1:
 			return OMAP4430_ES2_1;
-			break;
 		case OMAP4_CONTROL_ID_CODE_ES2_2:
 			return OMAP4430_ES2_2;
-			break;
 		default:
-			return OMAP4430_ES2_0;
 			break;
 		}
-		break;
+		return OMAP4430_ES2_0;
 	case MIDR_CORTEX_A9_R1P3:
 		return OMAP4430_ES2_3;
-		break;
 	case MIDR_CORTEX_A9_R2P10:
 		switch (readl(CONTROL_ID_CODE)) {
 		case OMAP4460_CONTROL_ID_CODE_ES1_1:
 			return OMAP4460_ES1_1;
-			break;
-		case OMAP4460_CONTROL_ID_CODE_ES1_0:
 		default:
-			return OMAP4460_ES1_0;
 			break;
 		}
-		break;
+		return OMAP4460_ES1_0;
 	default:
-		return OMAP4430_SILICON_ID_INVALID;
 		break;
 	}
+
+	return OMAP4430_SILICON_ID_INVALID;
 }
 
 /*
@@ -470,14 +451,8 @@ unsigned int omap4_revision(void)
  */
 static int watchdog_init(void)
 {
-	void __iomem *wd2_base = (void *)OMAP44XX_WDT2_BASE;
-
-	if (!cpu_is_omap4())
-		return 0;
-
-	writel(WD_UNLOCK1, wd2_base + WATCHDOG_WSPR);
-	wait_for_command_complete();
-	writel(WD_UNLOCK2, wd2_base + WATCHDOG_WSPR);
+	if (cpu_is_omap4())
+		omap_watchdog_disable(IOMEM(OMAP44XX_WDT2_BASE));
 
 	return 0;
 }

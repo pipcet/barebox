@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef _LINUX_RESET_CONTROLLER_H_
 #define _LINUX_RESET_CONTROLLER_H_
 
@@ -12,11 +14,13 @@ struct reset_controller_dev;
  *         things to reset the device
  * @assert: manually assert the reset line, if supported
  * @deassert: manually deassert the reset line, if supported
+ * @status: return the status of the reset line, if supported
  */
 struct reset_control_ops {
 	int (*reset)(struct reset_controller_dev *rcdev, unsigned long id);
 	int (*assert)(struct reset_controller_dev *rcdev, unsigned long id);
 	int (*deassert)(struct reset_controller_dev *rcdev, unsigned long id);
+	int (*status)(struct reset_controller_dev *rcdev, unsigned long id);
 };
 
 struct device_node;

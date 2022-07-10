@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 if ARCH_IMX
 
 config ARCH_TEXT_BASE
@@ -175,7 +177,7 @@ config ARCH_IMX8M
 	select CPU_V8
 	select PINCTRL_IMX_IOMUX_V3
 	select OFTREE
-	select SYS_SUPPORTS_64BIT_KERNEL
+	select CPU_SUPPORTS_64BIT_KERNEL
 	select COMMON_CLK_OF_PROVIDER
 	select ARCH_HAS_FEC_IMX
 	select HW_HAS_PCI
@@ -388,6 +390,11 @@ config MACH_ELTEC_HIPERCAM
 config MACH_TQMA6X
 	bool "TQ tqma6x on mba6x"
 	select ARCH_IMX6
+
+config MACH_TQMA6UL
+	bool "TQ tqma6ul on mba6ulx"
+	select ARCH_IMX6UL
+	select ARM_USE_COMPRESSED_DTB
 
 config MACH_TX6X
 	bool "Karo TX6x"

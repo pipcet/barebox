@@ -155,7 +155,7 @@ struct device_d *of_platform_device_create(struct device_node *np,
 
 	np->dev = NULL;
 
-	free(dev);
+	free_device(dev);
 	if (num_reg)
 		free(res);
 	return NULL;
@@ -202,7 +202,7 @@ struct device_d *of_device_enable_and_register_by_name(const char *name)
 {
 	struct device_node *node;
 
-	node = of_find_node_by_name(NULL, name);
+	node = of_find_node_by_name_address(NULL, name);
 	if (!node)
 		node = of_find_node_by_path(name);
 
@@ -278,6 +278,7 @@ static struct device_d *of_amba_device_create(struct device_node *np)
 	return &dev->dev;
 
 amba_err_free:
+	free_device_res(&dev->dev);
 	free(dev);
 	return NULL;
 }
@@ -365,13 +366,10 @@ int of_platform_populate(struct device_node *root,
 }
 EXPORT_SYMBOL_GPL(of_platform_populate);
 
-struct device_d *of_device_create_on_demand(struct device_node *np)
+static struct device_d *of_device_create_on_demand(struct device_node *np)
 {
 	struct device_node *parent;
 	struct device_d *parent_dev, *dev;
-
-	if (!deep_probe_is_supported())
-		return NULL;
 
 	parent = of_get_parent(np);
 	if (!parent)
@@ -424,7 +422,9 @@ int of_device_ensure_probed(struct device_node *np)
 	if (IS_ERR(dev))
 		return PTR_ERR(dev);
 
-	BUG_ON(!dev);
+	if (!dev)
+		panic("deep-probe: device for '%s' couldn't be created\n",
+			 np->full_name);
 
 	/*
 	 * The deep-probe mechanism relies on the fact that all necessary
@@ -457,6 +457,9 @@ int of_device_ensure_probed_by_alias(const char *alias)
 {
 	struct device_node *dev_node;
 
+	if (!deep_probe_is_supported())
+		return 0;
+
 	dev_node = of_find_node_by_alias(NULL, alias);
 	if (!dev_node)
 		return -EINVAL;
@@ -481,6 +484,9 @@ int of_devices_ensure_probed_by_dev_id(const struct of_device_id *ids)
 {
 	struct device_node *np;
 	int err, ret = 0;
+
+	if (!deep_probe_is_supported())
+		return 0;
 
 	for_each_matching_node(np, ids) {
 		if (!of_device_is_available(np))
@@ -510,18 +516,38 @@ EXPORT_SYMBOL_GPL(of_devices_ensure_probed_by_dev_id);
 int of_devices_ensure_probed_by_property(const char *property_name)
 {
 	struct device_node *node;
+	int err, ret = 0;
+
+	if (!deep_probe_is_supported())
+		return 0;
 
 	for_each_node_with_property(node, property_name) {
-		int ret;
-
 		ret = of_device_ensure_probed(node);
-		if (ret)
-			return ret;
+		if (err)
+			ret = err;
 	}
 
 	return 0;
 }
 EXPORT_SYMBOL_GPL(of_devices_ensure_probed_by_property);
+
+int of_devices_ensure_probed_by_name(const char *name)
+{
+	struct device_node *node;
+	int err, ret = 0;
+
+	if (!deep_probe_is_supported())
+		return 0;
+
+	for_each_node_by_name(node, name) {
+		ret = of_device_ensure_probed(node);
+		if (err)
+			ret = err;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(of_devices_ensure_probed_by_name);
 
 static int of_stdoutpath_init(void)
 {
@@ -539,3 +565,11 @@ static int of_stdoutpath_init(void)
 	return of_device_ensure_probed(np);
 }
 postconsole_initcall(of_stdoutpath_init);
+
+static int of_timer_init(void)
+{
+	of_devices_ensure_probed_by_name("timer");
+
+	return 0;
+}
+postcore_initcall(of_timer_init);

@@ -1,8 +1,27 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef __ASM_ARM_CPUTYPE_H
 #define __ASM_ARM_CPUTYPE_H
 
 #include <linux/stringify.h>
 #include <linux/kernel.h>
+
+#ifdef CONFIG_CPU_64v8
+
+#define CPUID_ID	midr_el1
+#define CPUID_CACHETYPE	ctr_el0
+#define CPUID_MPIDR	mpidr_el1
+
+#define read_cpuid(reg)							\
+	({								\
+		unsigned int __val;					\
+		asm("mrs	%0, " __stringify(reg)			\
+		    : "=r" (__val)					\
+		    :							\
+		    : "cc");						\
+		__val;							\
+	})
+#else
 
 #define CPUID_ID	0
 #define CPUID_CACHETYPE	1
@@ -25,8 +44,6 @@
 #define CPUID_EXT_ISAR4	"c2, 4"
 #define CPUID_EXT_ISAR5	"c2, 5"
 
-extern unsigned int processor_id;
-
 #define read_cpuid(reg)							\
 	({								\
 		unsigned int __val;					\
@@ -45,6 +62,9 @@ extern unsigned int processor_id;
 		    : "cc");						\
 		__val;							\
 	})
+#endif
+
+extern unsigned int processor_id;
 
 /*
  * The CPU ID never changes at run time, so we might as well tell the

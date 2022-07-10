@@ -31,7 +31,7 @@ config REGULATOR_STM32_PWR
 
 config REGULATOR_STM32_VREFBUF
 	tristate "STMicroelectronics STM32 VREFBUF"
-	depends on ARCH_STM32MP || COMPILE_TEST
+	depends on ARCH_STM32 || COMPILE_TEST
 	help
 	  This driver supports STMicroelectronics STM32 VREFBUF (voltage
 	  reference buffer) which can be used as voltage reference for
@@ -54,5 +54,14 @@ config REGULATOR_ANATOP
 	  Say y here to support Freescale i.MX on-chip ANATOP LDOs
 	  regulators. It is recommended that this option be
 	  enabled on i.MX6 platform.
+
+config REGULATOR_ARM_SCMI
+	tristate "SCMI based regulator driver"
+	depends on ARM_SCMI_PROTOCOL && OFDEVICE
+	help
+	  This adds the regulator driver support for ARM platforms using SCMI
+	  protocol for device voltage management.
+	  This driver uses SCMI Message Protocol driver to interact with the
+	  firmware providing the device Voltage functionality.
 
 endif

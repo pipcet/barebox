@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 menu "Host Tools"
 
 config COMPILE_HOST_TOOLS
@@ -109,6 +111,11 @@ config RK_USB_LOADER
 	  Say Y here to build the rockchip usb loader tool.
 
 	  You need libusb-1.0 to compile this tool.
+
+config QOICONV
+	bool "QOI image format conversion" if COMPILE_HOST_TOOLS
+	help
+	  This enable converting png to qoi images to generate boot logo.
 
 endmenu
 

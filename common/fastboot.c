@@ -673,7 +673,8 @@ static void cb_flash(struct fastboot *fb, const char *cmd)
 		goto out;
 	}
 
-	if (IS_ENABLED(CONFIG_BAREBOX_UPDATE) && filetype_is_barebox_image(filetype)) {
+	if (IS_ENABLED(CONFIG_BAREBOX_UPDATE) &&
+	    (filetype_is_barebox_image(filetype) || strstarts(fentry->name, "bbu-"))) {
 		void *buf;
 		struct bbu_handler *handler;
 		struct bbu_data data = {
@@ -920,9 +921,7 @@ struct file_list *get_fastboot_partitions(void)
 {
 	if (fastboot_partitions && *fastboot_partitions)
 		return file_list_parse_null(fastboot_partitions);
-	if (!system_partitions_empty())
-		return system_partitions_get();
-	return NULL;
+	return system_partitions_get_null();
 }
 
 static int fastboot_globalvars_init(void)

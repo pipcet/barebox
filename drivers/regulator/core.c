@@ -71,6 +71,11 @@ static int regulator_disable_internal(struct regulator_internal *ri)
 	if (!ri->enable_count)
 		return -EINVAL;
 
+	if (ri->enable_count > 1) {
+		ri->enable_count--;
+		return 0;
+	}
+
 	if (!ri->rdev->desc->ops->disable)
 		return -ENOSYS;
 
@@ -125,7 +130,7 @@ static struct regulator_internal * __regulator_register(struct regulator_dev *rd
 	if (name)
 		ri->name = xstrdup(name);
 
-	if (rd->boot_on) {
+	if (rd->boot_on || rd->always_on) {
 		ret = regulator_enable_internal(ri);
 		if (ret && ret != -ENOSYS)
 			goto err;
@@ -158,8 +163,11 @@ int of_regulator_register(struct regulator_dev *rd, struct device_node *node)
 		return -EINVAL;
 
 	rd->boot_on = of_property_read_bool(node, "regulator-boot-on");
+	rd->always_on = of_property_read_bool(node, "regulator-always-on");
 
 	name = of_get_property(node, "regulator-name", NULL);
+	if (!name)
+		name = node->name;
 
 	ri = __regulator_register(rd, name);
 	if (IS_ERR(ri))
@@ -191,13 +199,13 @@ static struct regulator_internal *of_regulator_get(struct device_d *dev, const c
 	struct device_node *node, *node_parent;
 	int ret;
 
-	propname = basprintf("%s-supply", supply);
-
 	/*
 	 * If the device does have a device node return the dummy regulator.
 	 */
 	if (!dev->device_node)
 		return NULL;
+
+	propname = basprintf("%s-supply", supply);
 
 	/*
 	 * If the device node does not contain a supply property, this device doesn't
@@ -238,7 +246,8 @@ static struct regulator_internal *of_regulator_get(struct device_d *dev, const c
 			goto out;
 		}
 
-		return ERR_PTR(ret);
+		ri = ERR_PTR(ret);
+		goto out;
 	}
 
 	list_for_each_entry(ri, &regulator_list, list) {

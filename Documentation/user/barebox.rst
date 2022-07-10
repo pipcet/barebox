@@ -203,9 +203,33 @@ Starting barebox
 Bringing barebox to a board for the first time is highly board specific, see your
 board documentation for initial bringup.
 
-barebox binaries are, where possible, designed to be startable second stage from another
-bootloader. For example, if you have U-Boot running on your board, you can start barebox
-with U-Boot's ``bootm`` command:
+For ARM and RISC-V, the barebox build can additionally generate a generic DT image
+(enable ``CONFIG_BOARD_ARM_GENERIC_DT`` or ``CONFIG_BOARD_RISCV_GENERIC_DT``,
+respectively). The resulting ``images/barebox-dt-2nd.img`` can be booted just
+like a Linux kernel that is passed an external device tree. For example:
+
+.. code-block:: console
+
+  U-Boot: tftp $kernel_addr barebox-dt-2nd.img
+  U-Boot: tftp $fdt_addr my-board.dtb
+  U-Boot: booti $kernel_addr - $fdt_addr
+
+For non-DT enabled-bootloaders or other architectures, often the normal barebox
+binaries can also be used as they are designed to be startable second stage
+from another bootloader, where possible. For example, if you have U-Boot running
+on your board, you can start barebox with U-Boot's ``bootm`` command. The bootm
+command doesn't support the barebox binaries directly, they first have to be
+converted to uImage format using the mkimage tool provided with U-Boot:
+
+.. code-block:: console
+
+  sh: mkimage -n barebox -A arm -T kernel -C none -a 0x80000000 -d \
+      build/images/barebox-freescale-imx53-loco.img image
+
+U-Boot expects the start address of the binary to be given in the image using the
+``-a`` option. The address depends on the board and must be an address which isn't
+used by U-Boot. You can pick the same address you would use for generating a kernel
+image for that board. The image can then be started with ``bootm``:
 
 .. code-block:: console
 
@@ -220,10 +244,11 @@ another barebox. For instance, if you mounted a TFTP server to ``/mnt/tftp``
 
   bootm /mnt/tftp/barebox.bin
 
-At least ``barebox.bin`` (with :ref:`pbl` support enabled ``arch/$ARCH/pbl/zbarebox.bin``)
-should be startable second stage. The flash binary (``barebox-flash-image``) may or may not
+At least ``barebox.bin`` (with :ref:`pbl` support enabled ``images/*.pblb``)
+should be startable second stage. The final binaries (``images/*.img``) may or may not
 be startable second stage as it may have SoC specific headers which prevent running second
-stage.
+stage. barebox will usually have handlers in-place to skip these headers, so
+it can chainload itself regardless.
 
 First Steps
 -----------

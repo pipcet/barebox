@@ -23,6 +23,21 @@
 
 static struct device_node *root_node;
 
+bool of_node_name_eq(const struct device_node *np, const char *name)
+{
+	const char *node_name;
+	size_t len;
+
+	if (!np)
+		return false;
+
+	node_name = kbasename(np->full_name);
+		len = strchrnul(node_name, '@') - node_name;
+
+	return (strlen(name) == len) && (strncmp(node_name, name, len) == 0);
+}
+EXPORT_SYMBOL(of_node_name_eq);
+
 /*
  * Iterate over all nodes of a tree. As a devicetree does not
  * have a dedicated list head, the start node (usually the root
@@ -538,6 +553,29 @@ int of_device_is_compatible(const struct device_node *device,
 EXPORT_SYMBOL(of_device_is_compatible);
 
 /**
+ *	of_find_node_by_name_address - Find a node by its full name
+ *	@from:	The node to start searching from or NULL, the node
+ *		you pass will not be searched, only the next one
+ *		will; typically, you pass what the previous call
+ *		returned.
+ *	@name:	The name string to match against
+ *
+ *	Returns a pointer to the node found or NULL.
+ */
+struct device_node *of_find_node_by_name_address(struct device_node *from,
+	const char *name)
+{
+	struct device_node *np;
+
+	of_tree_for_each_node_from(np, from)
+		if (np->name && !of_node_cmp(np->name, name))
+			return np;
+
+	return NULL;
+}
+EXPORT_SYMBOL(of_find_node_by_name_address);
+
+/**
  *	of_find_node_by_name - Find a node by its "name" property
  *	@from:	The node to start searching from or NULL, the node
  *		you pass will not be searched, only the next one
@@ -553,7 +591,7 @@ struct device_node *of_find_node_by_name(struct device_node *from,
 	struct device_node *np;
 
 	of_tree_for_each_node_from(np, from)
-		if (np->name && !of_node_cmp(np->name, name))
+		if (np->name && of_node_name_eq(np, name))
 			return np;
 
 	return NULL;
@@ -2077,15 +2115,19 @@ static void of_print_close(struct device_node *node, int *printed)
  * This function compares two device trees against each other and prints
  * a diff-like result.
  */
-void of_diff(struct device_node *a, struct device_node *b, int indent)
+int of_diff(struct device_node *a, struct device_node *b, int indent)
 {
 	struct property *ap, *bp;
 	struct device_node *ca, *cb;
-	int printed = 0;
+	int printed = 0, diff = 0;
+	bool silent = indent < 0;
 
 	list_for_each_entry(ap, &a->properties, list) {
 		bp = of_find_property(b, ap->name, NULL);
 		if (!bp) {
+			diff++;
+			if (silent)
+				continue;
 			of_print_parents(a, &printed);
 			printf("- ");
 			__of_print_property(ap, indent);
@@ -2093,6 +2135,9 @@ void of_diff(struct device_node *a, struct device_node *b, int indent)
 		}
 
 		if (ap->length != bp->length || memcmp(of_property_get_value(ap), of_property_get_value(bp), bp->length)) {
+			diff++;
+			if (silent)
+				continue;
 			of_print_parents(a, &printed);
 			printf("- ");
 			__of_print_property(ap, indent);
@@ -2104,6 +2149,9 @@ void of_diff(struct device_node *a, struct device_node *b, int indent)
 	list_for_each_entry(bp, &b->properties, list) {
 		ap = of_find_property(a, bp->name, NULL);
 		if (!ap) {
+			diff++;
+			if (silent)
+				continue;
 			of_print_parents(a, &printed);
 			printf("+ ");
 			__of_print_property(bp, indent);
@@ -2113,8 +2161,11 @@ void of_diff(struct device_node *a, struct device_node *b, int indent)
 	for_each_child_of_node(a, ca) {
 		cb = of_get_child_by_name(b, ca->name);
 		if (cb) {
-			of_diff(ca, cb, indent + 1);
+			diff += of_diff(ca, cb, silent ? indent : indent + 1);
 		} else {
+			diff++;
+			if (silent)
+				continue;
 			of_print_parents(a, &printed);
 			__of_print_nodes(ca, indent, "- ");
 		}
@@ -2122,12 +2173,18 @@ void of_diff(struct device_node *a, struct device_node *b, int indent)
 
 	for_each_child_of_node(b, cb) {
 		if (!of_get_child_by_name(a, cb->name)) {
+			diff++;
+			if (silent)
+				continue;
 			of_print_parents(a, &printed);
 			__of_print_nodes(cb, indent, "+ ");
 		}
 	}
 
-	of_print_close(a, &printed);
+	if (!silent)
+		of_print_close(a, &printed);
+
+	return diff;
 }
 
 struct device_node *of_new_node(struct device_node *parent, const char *name)
@@ -2285,6 +2342,8 @@ int of_property_sprintf(struct device_node *np,
 	if (len < 0)
 		return -ENOMEM;
 
+	len++; /* trailing NUL */
+
 	pp = of_find_property(np, propname, NULL);
 	of_delete_property(pp);
 
@@ -2381,7 +2440,7 @@ static void of_platform_device_create_root(struct device_node *np)
 
 	ret = platform_device_register(dev);
 	if (ret)
-		free(dev);
+		free_device(dev);
 }
 
 static const struct of_device_id reserved_mem_matches[] = {

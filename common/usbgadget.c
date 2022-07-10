@@ -27,9 +27,7 @@ static inline struct file_list *get_dfu_function(void)
 {
 	if (dfu_function && *dfu_function)
 		return file_list_parse_null(dfu_function);
-	if (!system_partitions_empty())
-		return system_partitions_get();
-	return NULL;
+	return system_partitions_get_null();
 }
 
 int usbgadget_register(const struct usbgadget_funcs *funcs)
@@ -54,7 +52,7 @@ int usbgadget_register(const struct usbgadget_funcs *funcs)
 		opts->ums_opts.files = file_list_parse_null(funcs->ums_opts);
 		if (IS_ENABLED(CONFIG_USB_GADGET_MASS_STORAGE) && file_list_empty(opts->ums_opts.files)) {
 			file_list_free(opts->ums_opts.files);
-			opts->ums_opts.files = system_partitions_get();
+			opts->ums_opts.files = system_partitions_get_null();
 		}
 	}
 

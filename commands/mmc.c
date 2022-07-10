@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #include <command.h>
 #include <mci.h>
 #include <stdio.h>
@@ -192,5 +194,6 @@ BAREBOX_CMD_HELP_END
 BAREBOX_CMD_START(mmc)
 	.cmd = do_mmc,
 	BAREBOX_CMD_OPTS("enh_area [-c] /dev/mmcX")
+	BAREBOX_CMD_GROUP(CMD_GRP_HWMANIP)
 	BAREBOX_CMD_HELP(cmd_mmc_help)
 BAREBOX_CMD_END

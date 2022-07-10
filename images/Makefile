@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # barebox image generation Makefile
 #
@@ -151,6 +152,7 @@ include $(srctree)/images/Makefile.ar231x
 include $(srctree)/images/Makefile.ath79
 include $(srctree)/images/Makefile.bcm283x
 include $(srctree)/images/Makefile.bcm47xx
+include $(srctree)/images/Makefile.clps711x
 include $(srctree)/images/Makefile.imx
 include $(srctree)/images/Makefile.loongson
 include $(srctree)/images/Makefile.malta

@@ -13,12 +13,20 @@
 #include <dma.h>
 #include <init.h>
 #include <io.h>
+#include <of_address.h>
+#include <pbl.h>
 
 #include <mach/mbox.h>
+#include <mach/core.h>
 
 #define TIMEOUT (MSECOND * 1000)
 
 static void __iomem *mbox_base;
+
+#ifdef __PBL__
+#define is_timeout_non_interruptible(start, timeout) ((void)start, 0)
+#define get_time_ns() 0
+#endif
 
 static int bcm2835_mbox_call_raw(u32 chan, struct bcm2835_mbox_hdr *buffer,
 					u32 *recv)
@@ -108,6 +116,22 @@ static void dump_buf(struct bcm2835_mbox_hdr *buffer)
 }
 #endif
 
+static void __iomem *bcm2835_mbox_probe(void)
+{
+	struct device_node *mbox_node;
+
+	if (IN_PBL)
+		return bcm2835_get_mmio_base_by_cpuid() + 0xb880;
+
+	mbox_node = of_find_compatible_node(NULL, NULL, "brcm,bcm2835-mbox");
+	if (!mbox_node) {
+		pr_err("Missing mbox node\n");
+		return NULL;
+	}
+
+	return of_iomap(mbox_node, 0);
+}
+
 int bcm2835_mbox_call_prop(u32 chan, struct bcm2835_mbox_hdr *buffer)
 {
 	int ret;
@@ -115,13 +139,19 @@ int bcm2835_mbox_call_prop(u32 chan, struct bcm2835_mbox_hdr *buffer)
 	struct bcm2835_mbox_tag_hdr *tag;
 	int tag_index;
 
+	if (!mbox_base) {
+		mbox_base = bcm2835_mbox_probe();
+		if (!mbox_base)
+			return -ENOENT;
+	}
+
 	pr_debug("mbox: TX buffer\n");
 	dump_buf(buffer);
 
 	ret = bcm2835_mbox_call_raw(chan, buffer, &rbuffer);
 	if (ret)
 		return ret;
-	if (rbuffer != (u32)buffer) {
+	if (rbuffer != (uintptr_t)buffer) {
 		pr_err("mbox: Response buffer mismatch\n");
 		return -EIO;
 	}
@@ -150,33 +180,3 @@ int bcm2835_mbox_call_prop(u32 chan, struct bcm2835_mbox_hdr *buffer)
 
 	return 0;
 }
-
-static int bcm2835_mbox_probe(struct device_d *dev)
-{
-	struct resource *iores;
-
-	iores = dev_request_mem_resource(dev, 0);
-	if (IS_ERR(iores)) {
-		dev_err(dev, "could not get memory region\n");
-		return PTR_ERR(iores);
-	}
-	mbox_base = IOMEM(iores->start);
-
-	return 0;
-}
-
-static __maybe_unused struct of_device_id bcm2835_mbox_dt_ids[] = {
-	{
-		.compatible = "brcm,bcm2835-mbox",
-	}, {
-		/* sentinel */
-	},
-};
-
-static struct driver_d bcm2835_mbox_driver = {
-	.name		= "bcm2835_mbox",
-	.of_compatible	= DRV_OF_COMPAT(bcm2835_mbox_dt_ids),
-	.probe		= bcm2835_mbox_probe,
-};
-
-core_platform_driver(bcm2835_mbox_driver);

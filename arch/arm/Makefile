@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 KBUILD_DEFCONFIG := qemu_virt64_defconfig
 
 KBUILD_CPPFLAGS	+= -D__ARM__ -fno-strict-aliasing
@@ -6,6 +8,7 @@ ifeq ($(CONFIG_CPU_V8),y)
 KBUILD_CPPFLAGS	+=$(call cc-option,-maarch64,)
 else
 KBUILD_CPPFLAGS	+=$(call cc-option,-marm,)
+KBUILD_CPPFLAGS	+= -msoft-float
 endif
 
 ifeq ($(CONFIG_CPU_BIG_ENDIAN),y)
@@ -76,7 +79,7 @@ KBUILD_CPPFLAGS += $(CFLAGS_ABI) $(arch-y) $(tune-y)
 KBUILD_AFLAGS   += -include asm/unified.h
 export S64 = _64
 else
-KBUILD_CPPFLAGS += $(CFLAGS_ABI) $(arch-y) $(tune-y) -msoft-float $(CFLAGS_THUMB2)
+KBUILD_CPPFLAGS += $(CFLAGS_ABI) $(arch-y) $(tune-y) $(CFLAGS_THUMB2)
 KBUILD_AFLAGS   += -include asm/unified.h -msoft-float $(AFLAGS_THUMB2)
 endif
 

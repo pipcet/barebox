@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 source "common/boards/Kconfig"
 
 config GREGORIAN_CALENDER
@@ -728,6 +730,12 @@ config IMD
 	select CRC32
 	bool "barebox metadata support"
 
+config IMD_ENDIANNESS
+	bool "add endianness record to metadata"
+	depends on IMD
+	depends on SYS_SUPPORTS_LITTLE_ENDIAN && SYS_SUPPORTS_BIG_ENDIAN
+	default y
+
 choice
 	prompt "console support"
 	default CONSOLE_FULL
@@ -996,6 +1004,11 @@ config STATE
 	select ENVIRONMENT_VARIABLES
 	select OFTREE
 	select PARAMETER
+	help
+	  barebox state is a generic framework for atomic power fail-safe
+	  variable storage and retrieval. It can be used to safely maintain
+	  data over reboots and to exchange information with Linux, e.g.
+	  for redundant boot with bootchooser.
 
 config STATE_CRYPTO
 	bool "HMAC based authentication support"
@@ -1042,7 +1055,7 @@ config RESET_SOURCE
 config MACHINE_ID
 	bool "compute unique machine-id"
 	depends on FLEXIBLE_BOOTARGS
-	depends on SHA1
+	depends on HAVE_DIGEST_SHA1
 	help
 	  Compute a persistent machine-specific id and store it to $global.machine_id.
 	  The id is a hash of device-specific information added via
@@ -1207,6 +1220,18 @@ config DEBUG_LL
 	  platform *will not work*, so this option should not be enabled
 	  for builds that are intended to be portable.
 
+config ARCH_WANT_FRAME_POINTERS
+	bool
+
+config FRAME_POINTER
+	bool "Compile barebox with frame pointers" if COMPILE_TEST
+	default y if ARCH_WANT_FRAME_POINTERS
+	help
+	  Selected by platforms that expect frame pointer usage, e.g.
+	  when stack unwinding is enabled. The resulting barebox image
+	  will be slightly larger and slower, but it can give precise
+	  debugging information when print stack traces.
+
 choice
 	prompt "Kernel low-level debugging port"
 	depends on DEBUG_LL
@@ -1344,6 +1369,13 @@ config DEBUG_ROCKCHIP_RK3568_UART
 	  Say Y here if you want kernel low-level debugging support
 	  on RK3568.
 
+config DEBUG_ROCKCHIP_RK3399_UART
+	bool "RK3399 Debug UART"
+	depends on ARCH_RK3399
+	help
+	  Say Y here if you want kernel low-level debugging support
+	  on RK3399.
+
 config DEBUG_SOCFPGA_UART0
 	bool "Use SOCFPGA UART0 for low-level debug"
 	depends on ARCH_SOCFPGA
@@ -1386,6 +1418,13 @@ config DEBUG_RPI3_MINI_UART
 	  Say Y here if you want low-level debugging support on
 	  RaspberryPi 3 board mini UART.
 
+config DEBUG_RPI4_MINI_UART
+	bool "RaspberryPi 4 mini UART"
+	depends on ARCH_BCM283X
+	help
+	  Say Y here if you want low-level debugging support on
+	  RaspberryPi 4 board mini UART.
+
 config DEBUG_ERIZO
 	bool "Erizo ns16550 port"
 	depends on SOC_ERIZO
@@ -1400,6 +1439,15 @@ config DEBUG_RISCV_VIRT
 	bool "RISC-V Virt ns16550 port"
 	depends on SOC_VIRT
 	select DEBUG_LL_NS16550
+
+config DEBUG_RISCVEMU_HTIF
+	bool "riscvemu HTIF port"
+	depends on SOC_VIRT
+	help
+	  When run without graphics support, tinyemu will expose access
+	  to the Virt I/O console as HTIF blocking console device as well.
+	  This is useful for low level debugging before Virt I/O DMA is
+	  initialized.
 
 config DEBUG_SIFIVE
 	bool "SiFive serial0 port"
@@ -1451,7 +1499,8 @@ config DEBUG_OMAP_UART_PORT
 config DEBUG_ROCKCHIP_UART_PORT
 	int "RK3xxx UART debug port" if DEBUG_ROCKCHIP_RK3188_UART || \
 				DEBUG_ROCKCHIP_RK3288_UART || \
-				DEBUG_ROCKCHIP_RK3568_UART
+				DEBUG_ROCKCHIP_RK3568_UART || \
+				DEBUG_ROCKCHIP_RK3399_UART
 	default 2
 	depends on ARCH_ROCKCHIP
 	help
@@ -1501,9 +1550,15 @@ config DEBUG_INITCALLS
 	  If enabled this will print initcall traces.
 
 config DEBUG_PROBES
-	bool "Trace driver probes"
+	bool "Trace driver probes/removes"
 	help
-	  If enabled this will print driver probe traces.
+	  If enabled this will log driver probe and remove traces. If DEBUG_LL is enabled,
+	  probes will be printed even before registering consoles. If it's disabled, they
+	  will be collected in the log and written out once a console is active.
+
+	  Removes are written to the log and will be printed as long as consoles exist.
+	  Most consoles do not implement a remove callback to remain operable until
+	  the very end. Consoles using DMA, however, must be removed.
 
 config PBL_BREAK
 	bool "Execute software break on pbl start"

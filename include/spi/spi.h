@@ -108,6 +108,11 @@ struct spi_device {
 	 */
 };
 
+static inline struct spi_device *to_spi_device(struct device_d *dev)
+{
+        return dev ? container_of(dev, struct spi_device, dev) : NULL;
+}
+
 struct spi_message;
 
 /**
@@ -404,6 +409,26 @@ spi_message_add_tail(struct spi_transfer *t, struct spi_message *m)
 	list_add_tail(&t->transfer_list, &m->transfers);
 }
 
+/**
+ * spi_message_init_with_transfers - Initialize spi_message and append transfers
+ * @m: spi_message to be initialized
+ * @xfers: An array of spi transfers
+ * @num_xfers: Number of items in the xfer array
+ *
+ * This function initializes the given spi_message and adds each spi_transfer in
+ * the given array to the message.
+ */
+static inline void
+spi_message_init_with_transfers(struct spi_message *m,
+struct spi_transfer *xfers, unsigned int num_xfers)
+{
+	unsigned int i;
+
+	spi_message_init(m);
+	for (i = 0; i < num_xfers; ++i)
+		spi_message_add_tail(&xfers[i], m);
+}
+
 static inline void
 spi_transfer_del(struct spi_transfer *t)
 {
@@ -416,6 +441,30 @@ spi_transfer_del(struct spi_transfer *t)
  */
 
 int spi_sync(struct spi_device *spi, struct spi_message *message);
+
+/**
+ * spi_sync_transfer - synchronous SPI data transfer
+ * @spi: device with which data will be exchanged
+ * @xfers: An array of spi_transfers
+ * @num_xfers: Number of items in the xfer array
+ * Context: can sleep
+ *
+ * Does a synchronous SPI data transfer of the given spi_transfer array.
+ *
+ * For more specific semantics see spi_sync().
+ *
+ * Return: zero on success, else a negative error code.
+ */
+static inline int
+spi_sync_transfer(struct spi_device *spi, struct spi_transfer *xfers,
+	unsigned int num_xfers)
+{
+	struct spi_message msg;
+
+	spi_message_init_with_transfers(&msg, xfers, num_xfers);
+
+	return spi_sync(spi, &msg);
+}
 
 struct spi_device *spi_new_device(struct spi_controller *ctrl,
 				  struct spi_board_info *chip);
@@ -515,9 +564,14 @@ static inline int spi_driver_register(struct driver_d *drv)
 	return register_driver(drv);
 }
 
+#ifdef CONFIG_SPI
 #define coredevice_spi_driver(drv)	\
 	register_driver_macro(coredevice,spi,drv)
 #define device_spi_driver(drv)	\
 	register_driver_macro(device,spi,drv)
+#else
+#define coredevice_spi_driver(drv)
+#define device_spi_driver(drv)
+#endif
 
 #endif /* __INCLUDE_SPI_H */
