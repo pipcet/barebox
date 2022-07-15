@@ -55,7 +55,7 @@ static u64 last_lba(struct block_device *bdev)
 {
 	if (!bdev)
 		return 0;
-	return bdev->num_blocks - 1;
+	return (bdev->num_blocks << (bdev->blockbits - 12)) - 1;
 }
 
 /**
