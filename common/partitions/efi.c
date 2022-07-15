@@ -80,6 +80,9 @@ static gpt_entry *alloc_read_gpt_entries(struct block_device *blk,
 
 	if (!count)
 		return NULL;
+
+	count += (1 << blk->blockbits) - 1;
+	count &= ~((1LL << blk->blockbits) - 1);
 	pte = kzalloc(count, GFP_KERNEL);
 	if (!pte)
 		return NULL;
@@ -116,6 +119,8 @@ static gpt_header *alloc_read_gpt_header(struct block_device *blk,
 	unsigned ssz = bdev_logical_block_size(blk);
 	int ret;
 
+	ssz += (1 << blk->blockbits) - 1;
+	ssz &= ~((1LL << blk->blockbits) - 1);
 	gpt = kzalloc(ssz, GFP_KERNEL);
 	if (!gpt)
 		return NULL;
