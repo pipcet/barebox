@@ -17,6 +17,7 @@
 #include <disks.h>
 #include <image-sparse.h>
 #include <elf.h>
+#include <efi/partition.h>
 
 #include <arm/mach-imx/include/mach/imx-header.h>
 
@@ -137,7 +138,7 @@ static int is_gpt_valid(const uint8_t *buf)
 	if (get_unaligned_le16(&buf[BS_55AA]) != 0xAA55)
 		return 0;
 
-	if (strncmp(&buf[512], "EFI PART", 8))
+	if (strncmp(&buf[GPT_BLOCK_SIZE], "EFI PART", 8))
 		return 0;
 
 	buf += MBR_Table;
