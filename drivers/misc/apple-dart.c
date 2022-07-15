@@ -33,7 +33,7 @@ static u64 dart_l2(struct device_d *dev, u64 addr0)
 
 static u64 *dart_ttbr(struct device_d *dev)
 {
-	u64 *ret = alloc_page();
+	u64 *ret = memalign(65536, 65536);
 	u64 *p = ret;
 	u64 addr;
 	int i;
