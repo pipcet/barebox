@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <common.h>
+#include <block.h>
+#include <disks.h>
 
 #include "nvme.h"
 
@@ -371,6 +373,10 @@ static void nvme_alloc_ns(struct nvme_ctrl *ctrl, unsigned nsid)
 		dev_err(ctrl->dev, "Cannot register block device (%d)\n", ret);
 		goto out_free_id;
 	}
+
+	ret = parse_partition_table(&ns->blk);
+	if (ret != 0)
+		dev_warn(ctrl->dev, "No partition table found\n");
 
 	return;
 out_free_id:
