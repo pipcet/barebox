@@ -409,7 +409,7 @@ CHECK		= sparse
 BASH		= bash
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ -Wbitwise $(CF)
-CFLAGS_KERNEL	=
+CFLAGS_KERNEL	= -fno-builtin -fno-builtin-function -ffreestanding -fno-inline
 AFLAGS_KERNEL	=
 CFLAGS_MODULE	=
 AFLAGS_MODULE	=
