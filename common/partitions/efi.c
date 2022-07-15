@@ -98,7 +98,7 @@ static gpt_entry *alloc_read_gpt_entries(struct block_device *blk,
 static inline unsigned short bdev_logical_block_size(struct block_device
 *bdev)
 {
-	return SECTOR_SIZE;
+	return GPT_BLOCK_SIZE;
 }
 
 /**
