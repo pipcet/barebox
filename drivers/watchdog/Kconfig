@@ -17,6 +17,12 @@ config WATCHDOG_POLLER
 	help
 	  Provides support for periodic watchdog feeder.
 
+config WATCHDOG_APPLE
+	bool "Apple WDT"
+	depends on ARCH_APPLE || COMPILE_TEST
+	help
+	  Add support for watchdog on Apple SoCs.
+
 config WATCHDOG_AR9344
 	bool "QCA AR9344"
 	depends on SOC_QCA_AR9344 || SOC_QCA_AR9331 || COMPILE_TEST
