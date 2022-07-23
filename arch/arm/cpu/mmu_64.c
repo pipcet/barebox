@@ -24,11 +24,31 @@
 
 static uint64_t *ttb;
 
+#define HCR_EL2_E2H_BIT		34
+static int effective_el(void)
+{
+	int el = current_el();
+
+	if (el == 2) {
+		u64 hcr_el2;
+
+		/*
+		 * If we are using the EL2&0 translation regime, the TCR_EL2
+		 * looks like the EL1 version, even though we are in EL2.
+		 */
+		__asm__ ("mrs %0, HCR_EL2\n" : "=r" (hcr_el2));
+		if (hcr_el2 & BIT(HCR_EL2_E2H_BIT))
+			return 1;
+	}
+
+	return el;
+}
+
 static void set_table(uint64_t *pt, uint64_t *table_addr)
 {
 	uint64_t val;
 
-	val = PTE_TYPE_TABLE | (uint64_t)table_addr;
+	val = PTE_TYPE_TABLE | PTE_BLOCK_AF | (uint64_t)table_addr;
 	*pt = val;
 }
 
@@ -89,6 +109,7 @@ static void split_block(uint64_t *pte, int level)
 		/* Level 3 block PTEs have the table type */
 		if ((level + 1) == 3)
 			new_table[i] |= PTE_TYPE_TABLE;
+		new_table[i] |= PTE_BLOCK_AF;
 	}
 
 	/* Set the new table into effect */
@@ -123,10 +144,10 @@ static void create_sections(uint64_t virt, uint64_t phys, uint64_t size,
 
 			pte = table + idx;
 
-			if (size >= block_size && IS_ALIGNED(addr, block_size)) {
+			if (level >= 2 && size >= block_size && IS_ALIGNED(addr, block_size)) {
 				type = (level == 3) ?
 					PTE_TYPE_PAGE : PTE_TYPE_BLOCK;
-				*pte = phys | attr | type;
+				*pte = phys | attr | type | ((level < 3) ? PTE_BLOCK_AF : 0);
 				addr += block_size;
 				phys += block_size;
 				size -= block_size;
@@ -165,6 +186,7 @@ int arch_remap_range(void *_start, size_t size, unsigned flags)
 
 static void mmu_enable(void)
 {
+	dsb();
 	isb();
 	set_cr(get_cr() | CR_M | CR_C | CR_I);
 }
@@ -191,21 +213,25 @@ void __mmu_init(bool mmu_on)
 		mmu_disable();
 
 	ttb = create_table();
-	el = current_el();
-	set_ttbr_tcr_mair(el, (uint64_t)ttb, calc_tcr(el, BITS_PER_VA),
+	el = effective_el();
+	set_ttbr_tcr_mair(current_el(), (uint64_t)ttb, calc_tcr(el, BITS_PER_VA),
 			  MEMORY_ATTRIBUTES);
 
 	pr_debug("ttb: 0x%p\n", ttb);
 
 	/* create a flat mapping */
-	create_sections(0, 0, 1UL << (BITS_PER_VA - 1), attrs_uncached_mem());
+	create_sections(0, 0, (1UL << 36), attrs_uncached_mem());
 
 	/* Map sdram cached. */
-	for_each_memory_bank(bank)
-		create_sections(bank->start, bank->start, bank->size, CACHED_MEM);
+	create_sections(0x800000000, 0x800000000, 0x200000000, CACHED_MEM);
+	//for_each_memory_bank(bank)
+	//	create_sections(bank->start, bank->start, bank->size, CACHED_MEM);
+	if (1)
+		set_ttbr_tcr_mair(current_el(), ((uint64_t *)ttb)[0]&0x0000000ffffff000, calc_tcr(el, BITS_PER_VA),
+			  MEMORY_ATTRIBUTES);
 
 	/* Make zero page faulting to catch NULL pointer derefs */
-	zero_page_faulting();
+	//zero_page_faulting();
 
 	mmu_enable();
 }
