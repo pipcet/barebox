@@ -209,7 +209,7 @@ static int nvme_alloc_queue(struct nvme_dev *dev, int qid, int depth)
 	nvmeq->dev = dev;
 	nvmeq->cq_head = 0;
 	nvmeq->cq_phase = 1;
-	nvmeq->q_db = &dev->dbs[qid * 2 * dev->db_stride];
+	//nvmeq->q_db = &dev->dbs[qid * 2 * dev->db_stride];
 	nvmeq->q_depth = depth;
 	nvmeq->qid = qid;
 	nvmeq->tcbs = (void *)xmemalign(16384, ANS_NVMMU_TCB_SIZE);
@@ -223,7 +223,7 @@ static int nvme_alloc_queue(struct nvme_dev *dev, int qid, int depth)
 			    ((void __iomem *)dev->bar) + ANS_NVMMU_BASE_ASQ);
 		break;
 	case NVME_QID_IO:
-		nvmeq->q_linear_db = ((void __iomem *)dev->bar) + ANS_IOSQ_DB;
+		nvmeq->q_db = ((void __iomem *)dev->bar) + ANS_IOSQ_DB;
 		writeq((ulong)nvmeq->tcbs,
 			    ((void __iomem *)dev->bar) + ANS_NVMMU_BASE_IOSQ);
 		break;
@@ -267,7 +267,7 @@ static int adapter_alloc_cq(struct nvme_dev *dev, u16 qid,
 	c.create_cq.cqid = cpu_to_le16(qid);
 	c.create_cq.qsize = cpu_to_le16(nvmeq->q_depth - 1);
 	c.create_cq.cq_flags = cpu_to_le16(flags);
-	c.create_cq.irq_vector = cpu_to_le16(vector);
+	c.create_cq.irq_vector = cpu_to_le16(qid - 1);
 
 	return nvme_submit_sync_cmd(&dev->ctrl, &c, NULL, 0);
 }
@@ -276,7 +276,7 @@ static int adapter_alloc_sq(struct nvme_dev *dev, u16 qid,
 			    struct nvme_queue *nvmeq)
 {
 	struct nvme_command c;
-	int flags = NVME_QUEUE_PHYS_CONTIG;
+	int flags = NVME_QUEUE_PHYS_CONTIG | NVME_SQ_PRIO_MEDIUM;
 
 	/*
 	 * Note: we (ab)use the fact that the prp fields survive if no data
@@ -303,9 +303,10 @@ static void nvme_init_queue(struct nvme_queue *nvmeq, u16 qid)
 	struct nvme_dev *dev = nvmeq->dev;
 
 	nvmeq->sq_tail = 0;
+	nvmeq->counter = 0;
 	nvmeq->cq_head = 0;
 	nvmeq->cq_phase = 1;
-	nvmeq->q_db = &dev->dbs[qid * 2 * dev->db_stride];
+	//nvmeq->q_db = &dev->dbs[qid * 2 * dev->db_stride];
 	dev->online_queues++;
 }
 
@@ -315,7 +316,7 @@ static int nvme_create_queue(struct nvme_queue *nvmeq, int qid)
 	int result;
 	s16 vector;
 
-	vector = 0;
+	vector = qid;
 	result = adapter_alloc_cq(dev, qid, nvmeq, vector);
 	if (result)
 		return result;
@@ -335,6 +336,13 @@ release_cq:
 	return result;
 }
 
+static inline void nvme_ring_cq_doorbell(struct nvme_queue *nvmeq)
+{
+	u16 head = nvmeq->cq_head;
+
+	writel(head, nvmeq->q_db + nvmeq->dev->db_stride);
+}
+
 /**
  * nvme_submit_cmd() - Copy a command into a queue and ring the doorbell
  * @nvmeq: The queue to use
@@ -351,7 +359,7 @@ static void nvme_submit_cmd(struct nvme_queue *nvmeq, struct nvme_command *cmd)
 	memcpy(&nvmeq->sq_cmds[tail], cmd, sizeof(*cmd));
 
 	tcb = ((void *)nvmeq->tcbs) +
-		cmd->common.command_id * ANS_NVMMU_TCB_PITCH;
+		tail * ANS_NVMMU_TCB_PITCH;
 	memset(tcb, 0, sizeof(*tcb));
 	tcb->opcode = cmd->common.opcode;
 	tcb->flags = ANS_NVMMU_TCB_WRITE | ANS_NVMMU_TCB_READ;
@@ -361,12 +369,20 @@ static void nvme_submit_cmd(struct nvme_queue *nvmeq, struct nvme_command *cmd)
 	tcb->prp2 = cmd->common.dptr.prp2;
 
 	asm volatile("" : : : "memory");
+	asm volatile("dsb sy");
+#if 0
+	writel(tail,
+	       ((void __iomem *)nvmeq->dev->bar) + ANS_NVMMU_TCB_INVAL);
+	readl(((void __iomem *)nvmeq->dev->bar) + ANS_NVMMU_TCB_STAT);
+#endif
 	if (nvmeq->q_linear_db) {
 		writel(cmd->common.command_id, nvmeq->q_linear_db);
 	} else {
+		writel(nvmeq->sq_tail, nvmeq->q_db);
 		if (++nvmeq->sq_tail == nvmeq->q_depth)
 			nvmeq->sq_tail = 0;
-		writel(nvmeq->sq_tail, nvmeq->q_db);
+		//nvme_ring_cq_doorbell(nvmeq);
+		//writel(nvmeq->cq_head, nvmeq->q_db + nvmeq->dev->db_stride);
 	}
 }
 
@@ -375,13 +391,6 @@ static inline bool nvme_cqe_pending(struct nvme_queue *nvmeq)
 {
 	return (le16_to_cpu(nvmeq->cqes[nvmeq->cq_head].status) & 1) ==
 			nvmeq->cq_phase;
-}
-
-static inline void nvme_ring_cq_doorbell(struct nvme_queue *nvmeq)
-{
-	u16 head = nvmeq->cq_head;
-
-	writel(head, nvmeq->q_db + nvmeq->dev->db_stride);
 }
 
 static inline void nvme_handle_cqe(struct nvme_queue *nvmeq, u16 idx)
@@ -516,6 +525,7 @@ static int nvme_pci_submit_sync_cmd(struct nvme_ctrl *ctrl,
 
 	nvme_submit_cmd(nvmeq, cmd);
 
+#if 0
 	struct ans_nvmmu_tcb *tcb;
 
 	tcb = ((void *)nvmeq->tcbs) +
@@ -523,6 +533,7 @@ static int nvme_pci_submit_sync_cmd(struct nvme_ctrl *ctrl,
 	memset(tcb, 0, sizeof(*tcb));
 	writel(cmd->common.command_id,
 	       ((void __iomem *)nvmeq->dev->bar) + ANS_NVMMU_TCB_INVAL);
+#endif
 	readl(((void __iomem *)nvmeq->dev->bar) + ANS_NVMMU_TCB_STAT);
 
 	nvmeq->req = &req;
@@ -614,8 +625,9 @@ static int nvme_setup_io_queues(struct nvme_dev *dev)
 {
 	int result, nr_io_queues;
 
-	nr_io_queues = NVME_QID_NUM - 1;
+	nr_io_queues = NVME_QID_NUM;
 	result = nvme_set_queue_count(&dev->ctrl, &nr_io_queues);
+	nr_io_queues = NVME_QID_NUM - 1;
 	if (result < 0) {
 		printf("early failure!");
 		return result;
@@ -634,8 +646,10 @@ static int nvme_pci_enable(struct nvme_dev *dev)
 	dev->ctrl.cap = readq(dev->bar + NVME_REG_CAP);
 
 	dev->q_depth = NVME_CAP_MQES(dev->ctrl.cap);
+ 	if (dev->q_depth > 32)
+	  dev->q_depth = 32;
 	dev->db_stride = 1 << NVME_CAP_STRIDE(dev->ctrl.cap);
-	dev->dbs = dev->bar + 4096;
+	//dev->dbs = dev->bar + 4096;
 
 	return 0;
 }
