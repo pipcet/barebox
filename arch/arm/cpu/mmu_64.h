@@ -3,10 +3,10 @@
 #include "mmu-common.h"
 
 #define CACHED_MEM      (PTE_BLOCK_MEMTYPE(MT_NORMAL) | \
-			 PTE_BLOCK_OUTER_SHARE | \
+			 PTE_BLOCK_INNER_SHARE | \
 			 PTE_BLOCK_AF)
 #define UNCACHED_MEM    (PTE_BLOCK_MEMTYPE(MT_DEVICE_nGnRnE) | \
-			 PTE_BLOCK_OUTER_SHARE | \
+			 PTE_BLOCK_NON_SHARE | \
 			 PTE_BLOCK_AF)
 
 static inline unsigned long attrs_uncached_mem(void)
@@ -110,7 +110,8 @@ static inline uint64_t calc_tcr(int el, int va_bits)
 	u64 ips;
 	u64 tcr;
 
-	ips = 2;
+	ips = 1;
+	va_bits = 36;
 
 	if (el == 1)
 		tcr = (ips << 32) | TCR_EPD1_DISABLE;
@@ -122,6 +123,7 @@ static inline uint64_t calc_tcr(int el, int va_bits)
 	/* PTWs cacheable, inner/outer WBWA and inner shareable */
 	tcr |= TCR_TG0_4K | TCR_SHARED_INNER | TCR_ORGN_WBWA | TCR_IRGN_WBWA;
 	tcr |= TCR_T0SZ(va_bits);
+	tcr |= (1U << 31 | 1 << 23);
 
 	return tcr;
 }
