@@ -15,6 +15,7 @@
 #include <disks.h>
 #include <filetype.h>
 #include <linux/err.h>
+#include <efi/partition.h>
 
 #include "partitions/parser.h"
 
@@ -28,7 +29,7 @@ static LIST_HEAD(partition_parser_list);
  * @return 0 on success
  */
 static int register_one_partition(struct block_device *blk,
-					struct partition *part, int no)
+				  struct partition *part, int no)
 {
 	char *partition_name;
 	int ret;
@@ -77,7 +78,7 @@ static struct partition_parser *partition_parser_get_by_filetype(uint8_t *buf)
 	struct partition_parser *parser;
 
 	/* first new partition table as EFI GPT */
-	type = file_detect_partition_table(buf, SECTOR_SIZE * 2);
+	type = file_detect_partition_table(buf, GPT_BLOCK_SIZE * 4);
 
 	list_for_each_entry(parser, &partition_parser_list, list) {
 		if (parser->type == type)
@@ -116,7 +117,7 @@ int parse_partition_table(struct block_device *blk)
 	uint8_t *buf;
 
 	pdesc = xzalloc(sizeof(*pdesc));
-	buf = malloc(2 * SECTOR_SIZE);
+	buf = malloc(2L << blk->blockbits);
 
 	rc = block_read(blk, buf, 0, 2);
 	if (rc != 0) {

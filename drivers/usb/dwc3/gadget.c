@@ -27,6 +27,8 @@
 					& ~((d)->interval - 1))
 
 
+static void dwc3_gadget_poll(struct usb_gadget *);
+
 /**
  * dwc3_gadget_set_test_mode - Enables USB2 Test Modes
  * @dwc: pointer to our context structure
@@ -380,9 +382,11 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 
 			break;
 		}
+		mdelay(1);
 	} while (--timeout);
 
 	if (timeout == 0) {
+	  printf("timeout\n");
 		ret = -ETIMEDOUT;
 		cmd_status = -ETIMEDOUT;
 	}
@@ -614,7 +618,7 @@ static int __dwc3_gadget_ep_enable(struct dwc3_ep *dep, unsigned int action)
 	u32 reg;
 	int ret;
 
-	dev_dbg(dwc->dev, "Enabling %s\n", dep->name);
+	dev_info(dwc->dev, "Enabling %s\n", dep->name);
 
 	if (!(dep->flags & DWC3_EP_ENABLED)) {
 		ret = dwc3_gadget_start_config(dep);
@@ -631,14 +635,15 @@ static int __dwc3_gadget_ep_enable(struct dwc3_ep *dep, unsigned int action)
 		struct dwc3_trb *trb_link;
 
 		dep->type = usb_endpoint_type(desc);
-		dep->flags |= DWC3_EP_ENABLED;
 
 		reg = dwc3_readl(dwc->regs, DWC3_DALEPENA);
 		reg |= DWC3_DALEPENA_EP(dep->number);
 		dwc3_writel(dwc->regs, DWC3_DALEPENA, reg);
 
-		if (usb_endpoint_xfer_control(desc))
+		if (usb_endpoint_xfer_control(desc)) {
+		  		dep->flags |= DWC3_EP_ENABLED;
 			return 0;
+		}
 
 		/* Initialize the TRB ring */
 		dep->trb_dequeue = 0;
@@ -658,6 +663,7 @@ static int __dwc3_gadget_ep_enable(struct dwc3_ep *dep, unsigned int action)
 								 trb_st_hw));
 		trb_link->ctrl |= DWC3_TRBCTL_LINK_TRB;
 		trb_link->ctrl |= DWC3_TRB_CTRL_HWO;
+		dep->flags |= DWC3_EP_ENABLED;
 	}
 
 	/*
@@ -1656,6 +1662,7 @@ static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
 		/* in HS, means ON */
 		if (DWC3_DSTS_USBLNKST(reg) == DWC3_LINK_STATE_U0)
 			break;
+		mdelay(1);
 	}
 
 	if (DWC3_DSTS_USBLNKST(reg) != DWC3_LINK_STATE_U0) {
@@ -1855,26 +1862,39 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 	/* Start with SuperSpeed Default */
 	dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(512);
 
+	do {
 	dep = dwc->eps[0];
 	ret = __dwc3_gadget_ep_enable(dep, DWC3_DEPCFG_ACTION_INIT);
 	if (ret) {
 		dev_err(dwc->dev, "failed to enable %s\n", dep->name);
-		goto err0;
+		continue;
 	}
+	break;
+	} while (1);
 
+	do {
 	dep = dwc->eps[1];
 	ret = __dwc3_gadget_ep_enable(dep, DWC3_DEPCFG_ACTION_INIT);
 	if (ret) {
 		dev_err(dwc->dev, "failed to enable %s\n", dep->name);
-		goto err1;
+		continue;
 	}
+	break;
+	} while (1);
 
 	/* begin to receive SETUP packets */
 	dwc->ep0state = EP0_SETUP_PHASE;
 	dwc->link_state = DWC3_LINK_STATE_SS_DIS;
 	dwc3_ep0_out_start(dwc);
 
+#if 0
+	u32 count;
+	count = dwc3_readl(dwc->regs, DWC3_GEVNTCOUNT(0));
+	count &= DWC3_GEVNTCOUNT_MASK;
+	dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(0), count);
+#endif
 	dwc3_gadget_enable_irq(dwc);
+	dwc->late = 1;
 
 	return 0;
 
@@ -2358,6 +2378,8 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 
 	dep = dwc->eps[epnum];
 
+	//printf("interrupt on EP %d %d\n", epnum, event->endpoint_event);
+
 	if (!(dep->flags & DWC3_EP_ENABLED)) {
 		if (!(dep->flags & DWC3_EP_TRANSFER_STARTED))
 			return;
@@ -2577,6 +2599,7 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 	speed = reg & DWC3_DSTS_CONNECTSPD;
 	dwc->speed = speed;
 
+	printf("speed %d\n", speed);
 	switch (speed) {
 	case DWC3_DSTS_SUPERSPEED_PLUS:
 		dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(512);
@@ -2626,7 +2649,7 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 
 	/* Enable USB2 LPM Capability */
 
-	if ((dwc->revision > DWC3_REVISION_194A) &&
+	if (0 && (dwc->revision > DWC3_REVISION_194A) &&
 	    (speed != DWC3_DSTS_SUPERSPEED) &&
 	    (speed != DWC3_DSTS_SUPERSPEED_PLUS)) {
 		reg = dwc3_readl(dwc->regs, DWC3_DCFG);
@@ -2660,14 +2683,14 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 	dep = dwc->eps[0];
 	ret = __dwc3_gadget_ep_enable(dep, DWC3_DEPCFG_ACTION_MODIFY);
 	if (ret) {
-		dev_err(dwc->dev, "failed to enable %s\n", dep->name);
+		dev_err(dwc->dev, "failed to enable %s [mod]\n", dep->name);
 		return;
 	}
 
 	dep = dwc->eps[1];
 	ret = __dwc3_gadget_ep_enable(dep, DWC3_DEPCFG_ACTION_MODIFY);
 	if (ret) {
-		dev_err(dwc->dev, "failed to enable %s\n", dep->name);
+		dev_err(dwc->dev, "failed to enable %s [mod]\n", dep->name);
 		return;
 	}
 
@@ -2828,6 +2851,7 @@ static void dwc3_gadget_hibernation_interrupt(struct dwc3 *dwc,
 static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 				  const struct dwc3_event_devt *event)
 {
+  printf("interrupt! %d\n", event->type);
 
 	switch (event->type) {
 	case DWC3_DEVICE_EVENT_DISCONNECT:
@@ -2885,10 +2909,10 @@ static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 static void dwc3_process_event_entry(struct dwc3 *dwc,
 				     const union dwc3_event *event)
 {
-	if (!event->type.is_devspec)
-		dwc3_endpoint_interrupt(dwc, &event->depevt);
-	else if (event->type.type == DWC3_EVENT_TYPE_DEV)
-		dwc3_gadget_interrupt(dwc, &event->devt);
+  if (!event->type.is_devspec)
+    dwc3_endpoint_interrupt(dwc, &event->depevt);
+  else if (event->type.type == DWC3_EVENT_TYPE_DEV)
+    dwc3_gadget_interrupt(dwc, &event->devt);
 }
 
 static void dwc3_gadget_poll(struct usb_gadget * g)

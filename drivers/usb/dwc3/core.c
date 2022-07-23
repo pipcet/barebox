@@ -84,7 +84,7 @@ static int dwc3_get_dr_mode(struct dwc3 *dwc)
 
 		dwc->dr_mode = mode;
 	}
-	dwc->dr_mode = USB_DR_MODE_HOST;
+	dwc->dr_mode = (((long)dwc->regs & 0xf00000000) == 0x300000000) ? USB_DR_MODE_PERIPHERAL : USB_DR_MODE_HOST;
 
 	return 0;
 }
@@ -1094,6 +1094,8 @@ static void dwc3_coresoft_reset(struct dwc3 *dwc)
 	reg = dwc3_readl(dwc->regs, DWC3_GCTL);
 	reg &= ~DWC3_GCTL_CORESOFTRESET;
 	dwc3_writel(dwc->regs, DWC3_GCTL, reg);
+
+	mdelay(100);
 }
 
 static int dwc3_probe(struct device_d *dev)
@@ -1137,6 +1139,7 @@ static int dwc3_probe(struct device_d *dev)
 	mdelay(1);
 	reset_control_deassert(dwc->reset);
 
+	mdelay(100);
 	dwc3_coresoft_reset(dwc);
 
 	dwc3_cache_hwparams(dwc);

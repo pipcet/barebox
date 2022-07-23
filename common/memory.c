@@ -186,6 +186,7 @@ int barebox_add_memory_bank(const char *name, resource_size_t start,
 
 static int add_mem_devices(void)
 {
+  return 0;
 	struct memory_bank *bank;
 
 	for_each_memory_bank(bank) {

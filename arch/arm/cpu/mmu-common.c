@@ -59,7 +59,7 @@ void dma_free_coherent(void *mem, dma_addr_t dma_handle, size_t size)
 
 static int mmu_init(void)
 {
-	if (list_empty(&memory_banks)) {
+	if (0 && list_empty(&memory_banks)) {
 		resource_size_t start;
 		int ret;
 
