@@ -223,7 +223,7 @@ void __mmu_init(bool mmu_on)
 	create_sections(0, 0, (1UL << 36), attrs_uncached_mem());
 
 	/* Map sdram cached. */
-	create_sections(0x800000000, 0x800000000, 0x200000000, CACHED_MEM);
+	create_sections(0x800000000, 0x800000000, 0x300000000, CACHED_MEM);
 	//for_each_memory_bank(bank)
 	//	create_sections(bank->start, bank->start, bank->size, CACHED_MEM);
 	if (1)
