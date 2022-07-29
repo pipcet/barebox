@@ -15,10 +15,6 @@
 	compatible = "apple,j274", "apple,t8103", "apple,arm-platform";
 	model = "Apple Mac mini (M1, 2020)";
 
-	aliases {
-		serial0 = &serial0;
-	};
-
 	chosen {
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -29,12 +25,10 @@
 
 	};
 
+#if 0
 	memory@800000000 {
 		device_type = "memory";
 		reg = <0x8 0 0x0 0x40000000>; /* To be filled by loader */
 	};
-};
-
-&serial0 {
-	status = "okay";
+#endif
 };
