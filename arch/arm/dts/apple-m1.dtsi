@@ -27,6 +27,17 @@
 		width = <1024>;
 		status = "okay";
 	};
+	chosen {
+	        framebuffer: framebuffer@9e0df8000 {
+			compatible = "apple,simple-framebuffer", "simple-framebuffer";
+			reg = <0x0a 0 0 0x400000>;
+			format = "a8r8g8b8";
+			height = <1024>;
+			stride = <4096>;
+			width = <1024>;
+			status = "okay";
+		};
+	};
 	cpus {
 		#address-cells = <2>;
 		#size-cells = <0>;
