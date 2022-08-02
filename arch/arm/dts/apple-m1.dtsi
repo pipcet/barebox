@@ -18,7 +18,7 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
-	framebuffer0: framebuffer@9e0df8000 {
+ 	framebuffer0: framebuffer@9e0df8000 {
 		compatible = "apple,simple-framebuffer", "simple-framebuffer";
 		reg = <0x0a 0 0 0x400000>;
 		format = "a8r8g8b8";
@@ -105,6 +105,30 @@
 			enable-method = "spin-table";
 			cpu-release-addr = <0 0>; /* To be filled by loader */
 		};
+	};
+
+	soc {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+
+		ranges;
+		dma-ranges;
+		nonposted-mmio;
+		xhci: usb0@100000000000 {
+		       compatible = "brcm,generic-xhci", "generic-xhci";
+		       reg = <0x10 0 0 0x4000>;
+		       dma-coherent;
+		       interrupt-parent = <&fiq>;
+		       interrupts = <AIC_FIQ 4 IRQ_TYPE_LEVEL_HIGH>;
+		       status = "okay";
+		};
+	};
+	fiq: interrupt-controller {
+	        compatible = "apple,fiq";
+		#interrupt-cells = <3>;
+		interrupt-controller;
+		use-for-ipi;
 	};
 
 	timer {
