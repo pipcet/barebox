@@ -1422,8 +1422,14 @@ static void xhci_remove(struct device_d *dev)
 	xhci_deregister(ctrl);
 }
 
+static const struct of_device_id xhci_of_match[] = {
+	{ .compatible = "generic-xhci", },
+	{ },
+};
+
 static struct driver_d xhci_driver = {
 	.name  = "xHCI",
+	.of_compatible = xhci_of_match,
 	.probe = xhci_probe,
 	.remove = xhci_remove,
 };
