@@ -305,7 +305,7 @@ static int run_init(void)
 	console_ctrlc_allow();
 
 	if (autoboot == AUTOBOOT_BOOT)
-		run_command("usb; usbgadget -a; fbtest");
+		run_command("usb; usbgadget -a");
 
 	if (autoboot == AUTOBOOT_MENU)
 		run_command(MENUFILE);
